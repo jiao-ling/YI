@@ -173,7 +173,7 @@ const HexagramDataService = (function() {
         },
         "震": {
             symbol: "☳",
-            binary: "100",
+            binary: "001",
             nature: "雷",
             attribute: "动、生发",
             direction: "东",
@@ -213,7 +213,7 @@ const HexagramDataService = (function() {
         },
         "艮": {
             symbol: "☶",
-            binary: "001",
+            binary: "100",
             nature: "山",
             attribute: "止、限制",
             direction: "东北",
@@ -1297,13 +1297,9 @@ const HexagramDataService = (function() {
             const upperBinary = binary.slice(0, 3);
             const lowerBinary = binary.slice(3);
 
-            // 在查找八卦前反转二进制编码，确保方向一致
-            const upperBinaryReversed = upperBinary.split('').reverse().join('');
-            const lowerBinaryReversed = lowerBinary.split('').reverse().join('');
-
             // 根据反转后的binary查找对应的八卦
-            hexagram.upperTrigram = getBaguaByBinary(upperBinaryReversed);
-            hexagram.lowerTrigram = getBaguaByBinary(lowerBinaryReversed);
+            hexagram.upperTrigram = getBaguaByBinary(upperBinary);
+            hexagram.lowerTrigram = getBaguaByBinary(lowerBinary);
         }
     }
 
