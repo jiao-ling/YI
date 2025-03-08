@@ -1297,13 +1297,9 @@ const HexagramDataService = (function() {
             const upperBinary = binary.slice(0, 3);
             const lowerBinary = binary.slice(3);
 
-            // 在查找八卦前反转二进制编码，确保方向一致
-            const upperBinaryReversed = upperBinary.split('').reverse().join('');
-            const lowerBinaryReversed = lowerBinary.split('').reverse().join('');
-
             // 根据反转后的binary查找对应的八卦
-            hexagram.upperTrigram = getBaguaByBinary(upperBinaryReversed);
-            hexagram.lowerTrigram = getBaguaByBinary(lowerBinaryReversed);
+            hexagram.upperTrigram = getBaguaByBinary(upperBinary);
+            hexagram.lowerTrigram = getBaguaByBinary(lowerBinary);
         }
     }
 
