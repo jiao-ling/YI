@@ -173,7 +173,7 @@ const HexagramDataService = (function() {
         },
         "震": {
             symbol: "☳",
-            binary: "100",
+            binary: "001",
             nature: "雷",
             attribute: "动、生发",
             direction: "东",
@@ -213,7 +213,7 @@ const HexagramDataService = (function() {
         },
         "艮": {
             symbol: "☶",
-            binary: "001",
+            binary: "100",
             nature: "山",
             attribute: "止、限制",
             direction: "东北",
