@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="易之 - 现代易经演算系统，通过三枚铜钱演算卦象，探索天地玄机">
+    <meta name="theme-color" content="#c0392b">
+    <title>易之 V6.2 | 高级易经演算系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 应用头部 -->
+        <header class="app-header">
+            <div class="app-branding">
+                <div class="app-logo">
+                    <span>易</span>
+                </div>
+                <div class="app-title">
+                    <h1>易之</h1>
+                    <p class="description">高级易经演算系统</p>
+                </div>
+            </div>
+            <div class="theme-toggle">
+                <span class="toggle-label">阴阳转换</span>
+                <div class="taiji-toggle" id="themeToggle" role="button" tabindex="0" aria-label="切换深浅色主题"></div>
+            </div>
+        </header>
+
+        <!-- 导航菜单 -->
+        <nav class="nav-bar" aria-label="主导航">
+            <div class="nav-menu" role="tablist">
+                <button class="nav-button active" data-section="divination" role="tab" aria-selected="true" aria-controls="divination">演算占卜</button>
+                <button class="nav-button" data-section="hexagram-analyzer" role="tab" aria-selected="false" aria-controls="hexagram-analyzer">卦象分析</button>
+                <button class="nav-button" data-section="history" role="tab" aria-selected="false" aria-controls="history">历史记录</button>
+                <button class="nav-button" data-section="knowledge" role="tab" aria-selected="false" aria-controls="knowledge">八卦知识</button>
+                <button class="nav-button" data-section="search" role="tab" aria-selected="false" aria-controls="search">卦象查询</button>
+            </div>
+        </nav>
+
+        <!-- 占卜部分 -->
+        <section id="divination" class="content-section active" role="tabpanel" aria-labelledby="divination-btn">
+            <!-- 步骤指引 -->
+            <div class="steps">
+                <div class="step active" id="step1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">投掷铜钱</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">形成卦象</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">变卦演变</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">解读结果</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="throwCoinBtn">
+                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M15,13H9v-2h6V13z"></path>
+                    </svg>
+                    <span>投掷铜钱</span>
+                </button>
+                <button class="btn btn-secondary" id="changeHexagramBtn" disabled>
+                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M19,8l-4,4h3c0,3.31-2.69,6-6,6c-1.01,0-1.97-0.25-2.8-0.7l-1.46,1.46C8.97,19.54,10.43,20,12,20c4.42,0,8-3.58,8-8h3 L19,8z M6,12c0-3.31,2.69-6,6-6c1.01,0,1.97,0.25,2.8,0.7l1.46-1.46C15.03,4.46,13.57,4,12,4c-4.42,0-8,3.58-8,8H1l4,4l4-4H6z"></path>
+                    </svg>
+                    <span>变卦显示</span>
+                </button>
+                <button class="btn" id="resetBtn">
+                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08 c-0.82,2.33-3.04,4-5.65,4c-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path>
+                    </svg>
+                    <span>重新起卦</span>
+                </button>
+                <button class="btn" id="saveBtn" disabled>
+                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M17,3H5C3.89,3,3,3.9,3,5v14c0,1.1,0.89,2,2,2h14c1.1,0,2-0.9,2-2V7L17,3z M12,19c-1.66,0-3-1.34-3-3s1.34-3,3-3 s3,1.34,3,3S13.66,19,12,19z M15,9H5V5h10V9z"></path>
+                    </svg>
+                    <span>保存结果</span>
+                </button>
+            </div>
+
+            <div class="progress-indicator" id="progressIndicator">
+                <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+            </div>
+
+            <div class="coins-area" id="coinsDisplay" aria-live="polite"></div>
+
+            <div class="grid-layout">
+                <!-- 左侧卦象显示 -->
+                <div class="col-span-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">卦象图示</h2>
+                            <p class="card-subtitle">从下至上依次形成六爻</p>
+                        </div>
+                        <div class="hexagram-container" id="hexagramContainer" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <!-- 右侧解读显示 -->
+                <div class="col-span-8">
+                    <div class="card result-card">
+                        <div class="hexagram-result">
+                            <div class="hexagram-info">
+                                <div class="hexagram-name" id="hexagramName">待演算</div>
+                                <div class="hexagram-explanation" id="hexagramExplanation"></div>
+                                <div class="hexagram-data">
+                                    <div class="hexagram-data-item" id="upperTrigramInfo"></div>
+                                    <div class="hexagram-data-item" id="lowerTrigramInfo"></div>
+                                </div>
+                            </div>
+                            <div class="hexagram-unicode" id="hexagramUnicode" aria-hidden="true"></div>
+                        </div>
+
+                        <div class="tabs">
+                            <div class="tab-nav" role="tablist">
+                                <button class="tab-button active" data-tab="overview" role="tab" aria-selected="true" aria-controls="overview">卦象概述</button>
+                                <button class="tab-button" data-tab="detail" role="tab" aria-selected="false" aria-controls="detail">详细解析</button>
+                                <button class="tab-button" data-tab="lines" role="tab" aria-selected="false" aria-controls="lines">爻辞解读</button>
+                                <button class="tab-button" data-tab="relations" role="tab" aria-selected="false" aria-controls="relations">卦象关系</button>
+                            </div>
+                            <div class="tab-content active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                                <div class="tab-panel" id="overviewContent">
+                                    请完成卦象演算以查看详细解读。
+                                </div>
+                            </div>
+                            <div class="tab-content" id="detail" role="tabpanel" aria-labelledby="detail-tab">
+                                <div class="tab-panel" id="detailContent">
+                                    请完成卦象演算以查看详细解读。
+                                </div>
+                            </div>
+                            <div class="tab-content" id="lines" role="tabpanel" aria-labelledby="lines-tab">
+                                <div class="tab-panel" id="linesContent">
+                                    请完成卦象演算以查看详细解读。
+                                </div>
+                            </div>
+                            <div class="tab-content" id="relations" role="tabpanel" aria-labelledby="relations-tab">
+                                <div class="tab-panel" id="relationsContent">
+                                    <div class="relation-graph">
+                                        <h3 class="relation-title">相关卦象</h3>
+                                        <div class="relation-items" id="relationItems">
+                                            请完成卦象演算以查看相关卦象。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 卦象分析工具 -->
+        <section id="hexagram-analyzer" class="content-section" role="tabpanel" aria-labelledby="hexagram-analyzer-btn">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">卦象组合分析</h2>
+                </div>
+                <div class="card-body">
+                    <div class="combination-tool">
+                        <h3 class="combination-title">八卦组合演算</h3>
+                        <div class="combination-selectors">
+                            <div class="selector-group">
+                                <div class="selector-label">上卦</div>
+                                <select class="bagua-selector" id="upperBagua">
+                                    <option value="">请选择上卦</option>
+                                    <option value="乾">乾 ☰ (天)</option>
+                                    <option value="坤">坤 ☷ (地)</option>
+                                    <option value="震">震 ☳ (雷)</option>
+                                    <option value="艮">艮 ☶ (山)</option>
+                                    <option value="坎">坎 ☵ (水)</option>
+                                    <option value="离">离 ☲ (火)</option>
+                                    <option value="巽">巽 ☴ (风)</option>
+                                    <option value="兑">兑 ☱ (泽)</option>
+                                </select>
+                            </div>
+                            <div class="selector-group">
+                                <div class="selector-label">下卦</div>
+                                <select class="bagua-selector" id="lowerBagua">
+                                    <option value="">请选择下卦</option>
+                                    <option value="乾">乾 ☰ (天)</option>
+                                    <option value="坤">坤 ☷ (地)</option>
+                                    <option value="震">震 ☳ (雷)</option>
+                                    <option value="艮">艮 ☶ (山)</option>
+                                    <option value="坎">坎 ☵ (水)</option>
+                                    <option value="离">离 ☲ (火)</option>
+                                    <option value="巽">巽 ☴ (风)</option>
+                                    <option value="兑">兑 ☱ (泽)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="combination-result mt-md" id="combinationResult">
+                            <div class="text-center">选择上下卦以查看组合结果</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 历史记录部分 -->
+        <section id="history" class="content-section" role="tabpanel" aria-labelledby="history-btn">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">占卜历史记录</h2>
+                </div>
+                <div class="card-body">
+                    <div class="history-filters">
+                        <div class="filter-item active" data-filter="all">全部</div>
+                        <div class="filter-item" data-filter="today">今日</div>
+                        <div class="filter-item" data-filter="week">本周</div>
+                        <div class="filter-item" data-filter="month">本月</div>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div class="empty-history">暂无历史记录</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 八卦知识部分 -->
+        <section id="knowledge" class="content-section" role="tabpanel" aria-labelledby="knowledge-btn">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">八卦基础知识</h2>
+                </div>
+                <div class="card-body">
+                    <div class="knowledge-section">
+                        <h3 class="section-title">八卦源流</h3>
+                        <p class="knowledge-text">八卦源于《易经》，相传由伏羲氏所创，是中国古代哲学、宇宙观的基础。八卦通过阴阳变化，象征天地万物的基本属性，是易经系统的根本。八卦以"卦"为单位，一个卦由三爻组成，阳爻为实线"—"，阴爻为虚线"- -"，三爻排列组合，形成八种基本卦象。</p>
+                    </div>
+
+                    <div class="bagua-grid" id="baguaGrid"></div>
+
+                    <div class="knowledge-section">
+                        <h3 class="section-title">六十四卦的形成</h3>
+                        <p class="knowledge-text">八卦两两相叠，形成六十四卦。上卦为外卦，代表外部环境；下卦为内卦，代表内在状态。六十四卦涵盖了世间万象的变化规律。每一卦由六爻组成，从下到上依次为初爻、二爻、三爻、四爻、五爻、上爻。其中初爻、三爻、五爻为奇数爻，象征阳；二爻、四爻、上爻为偶数爻，象征阴。</p>
+                    </div>
+
+                    <div class="knowledge-section">
+                        <h3 class="section-title">占卜的原理</h3>
+                        <p class="knowledge-text">易经占卜基于"天人合一"的哲学思想，认为时间、空间中的一切事物都是相互联系的。通过演算卦象，可以揭示事物发展的内在规律和趋势。占卜过程中，铜钱的正反面分别代表阳爻和阴爻，三枚铜钱可能出现的组合对应不同的卦爻变化。</p>
+                    </div>
+
+                    <div class="knowledge-section">
+                        <h3 class="section-title">变爻的意义</h3>
+                        <p class="knowledge-text">变爻是易经预测中最重要的因素之一，当爻发生变化时，表示这个位置上的能量正在转化。在传统易学中，有"老阳"和"老阴"的概念，代表能量已经极盛即将转变。老阳变为阴，老阴变为阳，形成变卦。变爻不仅暗示着事物的变动，也指出了特别需要关注的方面。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 卦象查询部分 -->
+        <section id="search" class="content-section" role="tabpanel" aria-labelledby="search-btn">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">卦象查询</h2>
+                </div>
+                <div class="card-body">
+                    <div class="search-container">
+                        <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                        </svg>
+                        <input type="text" id="searchInput" class="search-input" placeholder="输入卦名或关键词进行查询..." aria-label="搜索卦象">
+                    </div>
+                    <div class="search-tags">
+                        <span class="search-tag" data-keyword="天">天</span>
+                        <span class="search-tag" data-keyword="地">地</span>
+                        <span class="search-tag" data-keyword="水">水</span>
+                        <span class="search-tag" data-keyword="火">火</span>
+                        <span class="search-tag" data-keyword="雷">雷</span>
+                        <span class="search-tag" data-keyword="风">风</span>
+                        <span class="search-tag" data-keyword="山">山</span>
+                        <span class="search-tag" data-keyword="泽">泽</span>
+                    </div>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal" id="hexagramModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">卦象详情</h3>
+                <button class="modal-close" id="closeModal" aria-label="关闭对话框">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div class="notification-container" id="notificationContainer" aria-live="polite"></div>
+
+    <!-- 帮助按钮 -->
+    <div class="help-trigger" id="helpTrigger" tabindex="0" role="button" aria-label="打开帮助">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"></path>
+        </svg>
+        <span class="help-tooltip">查看使用帮助</span>
+    </div>
+
+    <!-- 引入JavaScript -->
+    <script src="js/app.js"></script>
+    <script src="js/modules.js"></script>
+</body>
+</html>
