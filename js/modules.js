@@ -1,6 +1,10 @@
 /**
- * 易之 V6.2 - 高级易经演算系统
+ * 易之 V7.0 - 高级易经演算系统
  * 功能模块实现
+ *
+ * @version 7.0.0
+ * @author 鲛澪
+ * @description 包含所有核心功能模块的实现
  */
 
 /**
@@ -10,32 +14,64 @@ const ThemeModule = (function() {
     // 私有变量
     const themeToggle = document.getElementById('themeToggle');
     const body = document.body;
+    const STORAGE_KEY = 'theme';
 
     // 初始化
     function init() {
-        // 检查本地存储中的主题设置
-        if(localStorage.getItem('theme') === 'dark') {
-            body.setAttribute('data-theme', 'dark');
-        }
-
-        // 为主题切换按钮添加事件监听器
-        themeToggle.addEventListener('click', toggleTheme);
-        themeToggle.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleTheme();
+        try {
+            // 检查存储中的主题设置
+            const savedTheme = YizhiApp.storage.getItem(STORAGE_KEY);
+            if (savedTheme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
             }
-        });
+
+            // 为主题切换按钮添加事件监听器
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+                themeToggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleTheme();
+                    }
+                });
+            }
+
+            // 监听系统主题变化
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addListener(handleSystemThemeChange);
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Theme Module Init');
+        }
     }
 
     // 切换主题
     function toggleTheme() {
-        if(body.getAttribute('data-theme') === 'dark') {
-            body.removeAttribute('data-theme');
-            localStorage.setItem('theme', 'light');
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
+        try {
+            const currentTheme = getCurrentTheme();
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Theme Toggle');
+        }
+    }
+
+    // 设置主题
+    function setTheme(theme) {
+        try {
+            if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+                YizhiApp.storage.setItem(STORAGE_KEY, 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+                YizhiApp.storage.setItem(STORAGE_KEY, 'light');
+            }
+
+            // 触发主题变化事件
+            YizhiApp.events.emit('theme:changed', { theme });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Set Theme');
         }
     }
 
@@ -44,9 +80,20 @@ const ThemeModule = (function() {
         return body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     }
 
+    // 处理系统主题变化
+    function handleSystemThemeChange(e) {
+        // 如果用户没有手动设置主题，则跟随系统
+        const userTheme = YizhiApp.storage.getItem(STORAGE_KEY);
+        if (!userTheme) {
+            setTheme(e.matches ? 'dark' : 'light');
+        }
+    }
+
     return {
         init,
-        getCurrentTheme
+        setTheme,
+        getCurrentTheme,
+        toggleTheme
     };
 })();
 
@@ -57,91 +104,199 @@ const NotificationModule = (function() {
     // 私有变量
     const container = document.getElementById('notificationContainer');
     let notificationCount = 0;
-    const maxNotifications = 3;
+    const maxNotifications = 5;
+    const notifications = new Map();
 
     // 初始化
     function init() {
-        // 无需初始化步骤
+        try {
+            // 确保容器存在
+            if (!container) {
+                console.warn('Notification container not found');
+                return;
+            }
+
+            // 监听网络状态变化
+            YizhiApp.events.on('network:offline', () => {
+                show('warning', '网络连接', '网络连接已断开，某些功能可能受到影响。');
+            });
+
+            YizhiApp.events.on('network:online', () => {
+                show('success', '网络连接', '网络连接已恢复。');
+            });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Notification Module Init');
+        }
     }
 
     // 显示通知
-    function show(type, title, message, duration = 5000) {
-        if (notificationCount >= maxNotifications) {
-            return; // 限制同时显示的通知数量
-        }
-
-        notificationCount++;
-
-        // 创建通知元素
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.setAttribute('role', 'alert');
-
-        // 添加通知图标
-        let iconPath = '';
-        switch(type) {
-            case 'success':
-                iconPath = '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"></path>';
-                break;
-            case 'info':
-                iconPath = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path>';
-                break;
-            case 'warning':
-                iconPath = '<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>';
-                break;
-            default:
-                iconPath = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path>';
-        }
-
-        // 设置通知内容
-        notification.innerHTML = `
-            <svg class="notification-icon icon" viewBox="0 0 24 24" aria-hidden="true">
-                ${iconPath}
-            </svg>
-            <div class="notification-content">
-                <div class="notification-title">${title}</div>
-                <div class="notification-message">${message}</div>
-            </div>
-            <button class="notification-close" aria-label="关闭通知">
-                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
-                </svg>
-            </button>
-        `;
-
-        // 添加到容器
-        container.appendChild(notification);
-
-        // 添加关闭通知的事件监听器
-        const closeBtn = notification.querySelector('.notification-close');
-        closeBtn.addEventListener('click', () => {
-            removeNotification(notification);
-        });
-
-        // 设置自动消失
-        if (duration > 0) {
-            setTimeout(() => {
-                if (container.contains(notification)) {
-                    removeNotification(notification);
+    function show(type, title, message, duration = 5000, options = {}) {
+        try {
+            if (notificationCount >= maxNotifications) {
+                // 移除最旧的通知
+                const oldestNotification = notifications.values().next().value;
+                if (oldestNotification) {
+                    removeNotification(oldestNotification.element);
                 }
-            }, duration);
+            }
+
+            notificationCount++;
+
+            // 创建通知元素
+            const notification = document.createElement('div');
+            const notificationId = YizhiApp.utils.generateId();
+            notification.className = `notification notification-${type}`;
+            notification.setAttribute('role', 'alert');
+            notification.setAttribute('data-id', notificationId);
+
+            // 添加通知图标
+            const iconPath = getIconPath(type);
+
+            // 设置通知内容
+            notification.innerHTML = `
+                <svg class="notification-icon icon" viewBox="0 0 24 24" aria-hidden="true">
+                    ${iconPath}
+                </svg>
+                <div class="notification-content">
+                    <div class="notification-title">${escapeHtml(title)}</div>
+                    <div class="notification-message">${escapeHtml(message)}</div>
+                    ${options.actions ? createActionButtons(options.actions) : ''}
+                </div>
+                <button class="notification-close" aria-label="关闭通知">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+                    </svg>
+                </button>
+            `;
+
+            // 添加到容器
+            container.appendChild(notification);
+
+            // 保存通知引用
+            notifications.set(notificationId, {
+                element: notification,
+                timestamp: Date.now()
+            });
+
+            // 添加关闭通知的事件监听器
+            const closeBtn = notification.querySelector('.notification-close');
+            closeBtn.addEventListener('click', () => {
+                removeNotification(notification);
+            });
+
+            // 处理操作按钮
+            if (options.actions) {
+                const actionBtns = notification.querySelectorAll('.notification-action');
+                actionBtns.forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        const action = options.actions[index];
+                        if (action.handler) {
+                            action.handler();
+                        }
+                        if (action.closeOnClick !== false) {
+                            removeNotification(notification);
+                        }
+                    });
+                });
+            }
+
+            // 点击通知主体
+            if (options.onClick) {
+                notification.addEventListener('click', (e) => {
+                    if (!e.target.closest('.notification-close') && !e.target.closest('.notification-action')) {
+                        options.onClick();
+                        if (options.closeOnClick !== false) {
+                            removeNotification(notification);
+                        }
+                    }
+                });
+            }
+
+            // 设置自动消失
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (container.contains(notification)) {
+                        removeNotification(notification);
+                    }
+                }, duration);
+            }
+
+            // 添加入场动画
+            requestAnimationFrame(() => {
+                notification.classList.add('notification-enter');
+            });
+
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Show Notification');
         }
     }
 
     // 移除通知
     function removeNotification(notification) {
-        notification.classList.add('exiting');
-        setTimeout(() => {
-            if (container.contains(notification)) {
-                container.removeChild(notification);
-                notificationCount--;
-            }
-        }, 300); // 与通知退出动画持续时间匹配
+        try {
+            const notificationId = notification.getAttribute('data-id');
+
+            notification.classList.add('exiting');
+            setTimeout(() => {
+                if (container.contains(notification)) {
+                    container.removeChild(notification);
+                    notificationCount--;
+
+                    if (notificationId) {
+                        notifications.delete(notificationId);
+                    }
+                }
+            }, 300); // 与通知退出动画持续时间匹配
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Remove Notification');
+        }
+    }
+
+    // 获取图标路径
+    function getIconPath(type) {
+        const icons = {
+            success: '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"></path>',
+            info: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path>',
+            warning: '<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>',
+            error: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path>'
+        };
+        return icons[type] || icons.info;
+    }
+
+    // 创建操作按钮
+    function createActionButtons(actions) {
+        return `
+            <div class="notification-actions">
+                ${actions.map(action => `
+                    <button class="notification-action btn btn-sm ${action.className || ''}">${escapeHtml(action.text)}</button>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // HTML转义
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 清除所有通知
+    function clearAll() {
+        try {
+            const allNotifications = container.querySelectorAll('.notification');
+            allNotifications.forEach(notification => {
+                removeNotification(notification);
+            });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Clear All Notifications');
+        }
     }
 
     return {
         init,
-        show
+        show,
+        clearAll
     };
 })();
 
@@ -233,7 +388,7 @@ const HexagramDataService = (function() {
         }
     };
 
-    const hexagramsData = {
+        const hexagramsData = {
         "1": {
             "name": "乾",
             "unicode": "\u4DC0",
@@ -1260,29 +1415,38 @@ const HexagramDataService = (function() {
         }
     }
 
-    let hexagramMap = {}; // 将在init方法中加载
+    let hexagramMap = {};
+    let isInitialized = false;
 
     // 初始化
-    function init() {
-        // 直接使用内置的hexagramsData数据
-        hexagramMap = hexagramsData;
-        processHexagramData();
+    async function init() {
+        try {
+            if (isInitialized) return;
+
+            YizhiApp.performance.start('hexagram_data_init');
+
+            // 处理卦象数据
+            await processHexagramData();
+
+            isInitialized = true;
+            YizhiApp.performance.end('hexagram_data_init');
+
+            YizhiApp.events.emit('hexagram-data:ready');
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Hexagram Data Service Init');
+        }
     }
 
     // 处理卦象数据
-    function processHexagramData() {
-        // 确保每个卦象都有id字段并计算派生属性
+    async function processHexagramData() {
+        hexagramMap = YizhiApp.utils.deepClone(hexagramsData);
+
         for (const key in hexagramMap) {
             const id = parseInt(key);
             hexagramMap[key].id = id;
 
             // 计算上卦和下卦
             calculateTrigrams(hexagramMap[key]);
-
-            // 确保lines数组存在
-            if (!hexagramMap[key].lines) {
-                hexagramMap[key].lines = [];
-            }
 
             // 计算相关卦象关系
             calculateRelations(hexagramMap[key]);
@@ -1293,58 +1457,42 @@ const HexagramDataService = (function() {
     function calculateTrigrams(hexagram) {
         const binary = hexagram.binary;
         if (binary && binary.length === 6) {
-            // 上卦是前三位，下卦是后三位
             const upperBinary = binary.slice(0, 3);
             const lowerBinary = binary.slice(3);
 
-            // 根据反转后的binary查找对应的八卦
             hexagram.upperTrigram = getBaguaByBinary(upperBinary);
             hexagram.lowerTrigram = getBaguaByBinary(lowerBinary);
         }
     }
 
-    // 计算关系数据结构初始化
+    // 计算关系数据结构
     function calculateRelations(hexagram) {
-        const id = hexagram.id;
-
-        // 否则，计算关系
         hexagram.relations = {};
-
-        // 计算错卦/对宫卦 (opposite) - 每一爻都取反
         hexagram.relations.opposite = calculateOpposite(hexagram.binary);
-
-        // 计算综卦 (inverse) - 上下颠倒
         hexagram.relations.inverse = calculateInverse(hexagram.binary);
-
-        // 计算互卦 (mutual) - 根据特定规则
         hexagram.relations.mutual = calculateMutual(hexagram.binary);
     }
 
-    // 计算对宫卦 - 每一爻都取反
+    // 计算对宫卦
     function calculateOpposite(binary) {
         const oppositeBinary = binary.split('').map(bit => bit === '1' ? '0' : '1').join('');
         return getHexagramIdByBinary(oppositeBinary);
     }
 
-    // 计算综卦 - 上下颠倒
+    // 计算综卦
     function calculateInverse(binary) {
         const inverseBinary = binary.split('').reverse().join('');
         return getHexagramIdByBinary(inverseBinary);
     }
 
-    // 计算互卦 - 第2、3、4爻作为下卦，第3、4、5爻作为上卦
+    // 计算互卦
     function calculateMutual(binary) {
-        // 互卦的上卦由原卦的第3、4、5爻组成
         const third = binary.charAt(2);
         const fourth = binary.charAt(3);
         const fifth = binary.charAt(4);
-        const mutualUpper = third + fourth + fifth;
-
-        // 互卦的下卦由原卦的第2、3、4爻组成
         const second = binary.charAt(1);
-        const mutualLower = second + third + fourth;
 
-        const mutualBinary = mutualLower + mutualUpper;
+        const mutualBinary = second + third + fourth + third + fourth + fifth;
         return getHexagramIdByBinary(mutualBinary);
     }
 
@@ -1355,7 +1503,7 @@ const HexagramDataService = (function() {
                 return parseInt(key);
             }
         }
-        return 1; // 默认返回第一卦
+        return 1;
     }
 
     // 根据二进制代码获取八卦
@@ -1368,12 +1516,11 @@ const HexagramDataService = (function() {
         return null;
     }
 
-    // 根据二进制代码获取卦象
+    // 公共API方法
     function getHexagramByBinary(binary) {
         for (const key in hexagramMap) {
             if (hexagramMap[key].binary === binary) {
                 const hexagram = hexagramMap[key];
-                // 确保计算了上下卦
                 if (!hexagram.upperTrigram || !hexagram.lowerTrigram) {
                     calculateTrigrams(hexagram);
                 }
@@ -1383,11 +1530,9 @@ const HexagramDataService = (function() {
         return null;
     }
 
-    // 根据ID获取卦象
     function getHexagramById(id) {
         const hexagram = hexagramMap[id] || null;
         if (hexagram) {
-            // 确保计算了上下卦和关系
             if (!hexagram.upperTrigram || !hexagram.lowerTrigram) {
                 calculateTrigrams(hexagram);
             }
@@ -1398,27 +1543,20 @@ const HexagramDataService = (function() {
         return hexagram;
     }
 
-    // 获取八卦数据
     function getBaguaData() {
         return baguaData;
     }
 
-    // 获取特定八卦
     function getBagua(name) {
         return baguaData[name] || null;
     }
 
-    // 根据上下卦获取对应的六十四卦
     function getHexagramByTrigrams(upper, lower) {
-        // 遍历所有卦象并检查上下卦
         for (const key in hexagramMap) {
             const hexagram = hexagramMap[key];
-
-            // 确保计算了上下卦
             if (!hexagram.upperTrigram || !hexagram.lowerTrigram) {
                 calculateTrigrams(hexagram);
             }
-
             if (hexagram.upperTrigram === upper && hexagram.lowerTrigram === lower) {
                 return hexagram;
             }
@@ -1426,27 +1564,20 @@ const HexagramDataService = (function() {
         return null;
     }
 
-    // 根据关键词搜索卦象
     function searchHexagrams(keyword) {
         keyword = keyword.toLowerCase();
         const results = [];
 
         for (const key in hexagramMap) {
             const hexagram = hexagramMap[key];
-
-            // 确保计算了上下卦
             if (!hexagram.upperTrigram || !hexagram.lowerTrigram) {
                 calculateTrigrams(hexagram);
             }
 
-            // 检查名称、解释、概述和详细说明
             if (hexagram.name.toLowerCase().includes(keyword) ||
                 hexagram.explanation.toLowerCase().includes(keyword) ||
                 (hexagram.overview && hexagram.overview.toLowerCase().includes(keyword)) ||
-                (hexagram.detail && hexagram.detail.toLowerCase().includes(keyword)) ||
-                (hexagram.tags && hexagram.tags.some(tag => tag.toLowerCase().includes(keyword))) ||
-                (hexagram.upperTrigram && hexagram.upperTrigram.toLowerCase().includes(keyword)) ||
-                (hexagram.lowerTrigram && hexagram.lowerTrigram.toLowerCase().includes(keyword))) {
+                (hexagram.detail && hexagram.detail.toLowerCase().includes(keyword))) {
                 results.push(hexagram);
             }
         }
@@ -1454,16 +1585,10 @@ const HexagramDataService = (function() {
         return results;
     }
 
-    // 获取相关卦象
     function getRelatedHexagrams(hexagramId) {
         const hexagram = hexagramMap[hexagramId];
-        if (!hexagram) {
+        if (!hexagram || !hexagram.relations) {
             return {};
-        }
-
-        // 确保计算了相关卦象
-        if (!hexagram.relations) {
-            calculateRelations(hexagram);
         }
 
         const related = {};
@@ -1474,6 +1599,10 @@ const HexagramDataService = (function() {
         return related;
     }
 
+    function getAllHexagrams() {
+        return Object.values(hexagramMap);
+    }
+
     return {
         init,
         getHexagramByBinary,
@@ -1482,7 +1611,9 @@ const HexagramDataService = (function() {
         getBagua,
         getHexagramByTrigrams,
         searchHexagrams,
-        getRelatedHexagrams
+        getRelatedHexagrams,
+        getAllHexagrams,
+        get isInitialized() { return isInitialized; }
     };
 })();
 
@@ -1495,6 +1626,7 @@ const DivinationModule = (function() {
     const changeHexagramBtn = document.getElementById('changeHexagramBtn');
     const resetBtn = document.getElementById('resetBtn');
     const saveBtn = document.getElementById('saveBtn');
+    const exportBtn = document.getElementById('exportBtn');
     const hexagramContainer = document.getElementById('hexagramContainer');
     const hexagramNameDisplay = document.getElementById('hexagramName');
     const hexagramUnicodeDisplay = document.getElementById('hexagramUnicode');
@@ -1502,11 +1634,14 @@ const DivinationModule = (function() {
     const upperTrigramInfo = document.getElementById('upperTrigramInfo');
     const lowerTrigramInfo = document.getElementById('lowerTrigramInfo');
     const coinsDisplay = document.getElementById('coinsDisplay');
+    const coinsResult = document.getElementById('coinsResult');
     const overviewContent = document.getElementById('overviewContent');
     const detailContent = document.getElementById('detailContent');
     const linesContent = document.getElementById('linesContent');
     const relationsContent = document.getElementById('relationItems');
     const progressBar = document.getElementById('progressBar');
+    const progressCount = document.getElementById('progressCount');
+    const throwSubtitle = document.getElementById('throwSubtitle');
 
     // 步骤指引
     const steps = {
@@ -1516,375 +1651,503 @@ const DivinationModule = (function() {
         step4: document.getElementById('step4')
     };
 
-    let lines = []; // 保存每爻信息，{type: 'yin'/'yang', changing: true/false}
-    let transformed = false; // 标记是否已经改变卦象
-    const positionCode = "010101"; // 完全当位的二进制代码
+    let lines = [];
+    let transformed = false;
+    let animationInProgress = false;
+    const positionCode = "010101";
 
     // 初始化
     function init() {
-        // 添加事件监听器
-        throwCoinBtn.addEventListener('click', handleThrowCoins);
-        changeHexagramBtn.addEventListener('click', toggleChangingLines);
-        resetBtn.addEventListener('click', resetDivination);
-        saveBtn.addEventListener('click', saveToHistory);
+        try {
+            bindEvents();
+            initializeUI();
 
-        // 禁用按钮
-        changeHexagramBtn.disabled = true;
-        saveBtn.disabled = true;
+            // 监听卦象数据准备完成事件
+            YizhiApp.events.on('hexagram-data:ready', () => {
+                updateHexagramDisplay();
+            });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Divination Module Init');
+        }
+    }
 
-        // 更新进度条
+    // 绑定事件
+    function bindEvents() {
+        throwCoinBtn?.addEventListener('click', handleThrowCoins);
+        changeHexagramBtn?.addEventListener('click', toggleChangingLines);
+        resetBtn?.addEventListener('click', handleReset);
+        saveBtn?.addEventListener('click', saveToHistory);
+        exportBtn?.addEventListener('click', exportResult);
+    }
+
+    // 初始化UI
+    function initializeUI() {
+        resetDivination();
         updateProgress(0);
+        updateStep(1);
     }
 
     // 激活时的处理
     function onActivate() {
-        // 在导航到占卜部分时执行的操作
+        // 检查是否有未完成的占卜
+        if (lines.length > 0 && lines.length < 6) {
+            YizhiApp.getModule('notification')?.show('info', '继续占卜',
+                `您有一个进行到第${lines.length}爻的占卜，可以继续完成。`);
+        }
     }
 
-    // 投掷铜钱
+    // 处理投掷铜钱
     async function handleThrowCoins() {
-        if (lines.length < 6) {
+        if (animationInProgress || lines.length >= 6) return;
+
+        try {
+            animationInProgress = true;
             throwCoinBtn.disabled = true;
+
             updateStep(1);
             await throwThreeCoins();
-            throwCoinBtn.disabled = false;
 
-            // 未满6爻时禁用变卦按钮
-            changeHexagramBtn.disabled = true;
-
-            // 更新进度
             updateProgress((lines.length / 6) * 100);
+            updateProgressCount();
+            updateThrowButtonText();
 
-            // 如果已经有了3爻，更新步骤为第二步
             if (lines.length >= 3) {
                 updateStep(2);
             }
-        }
 
-        if (lines.length === 6) {
-            throwCoinBtn.disabled = true;
-            // 仅在完成6爻后启用变卦按钮
-            changeHexagramBtn.disabled = false;
-            saveBtn.disabled = false;
+            if (lines.length === 6) {
+                handleDivinationComplete();
+            }
 
-            // 完成了所有6爻，更新步骤为第三步
-            updateStep(3);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Throw Coins');
+        } finally {
+            animationInProgress = false;
+            if (lines.length < 6) {
+                throwCoinBtn.disabled = false;
+            }
         }
     }
 
     // 投掷三枚铜钱
     function throwThreeCoins() {
         return new Promise((resolve) => {
-            // 清空上一次的铜钱
-            coinsDisplay.innerHTML = '';
-
-            // 创建三个铜钱容器
-            for (let i = 0; i < 3; i++) {
-                const coinContainer = document.createElement('div');
-                coinContainer.className = 'coin';
-
-                const coinInner = document.createElement('div');
-                coinInner.className = 'coin-inner';
-
-                const frontFace = document.createElement('div');
-                frontFace.className = 'coin-face coin-front';
-                frontFace.textContent = '阳';
-
-                const backFace = document.createElement('div');
-                backFace.className = 'coin-face coin-back';
-                backFace.textContent = '阴';
-
-                coinInner.appendChild(frontFace);
-                coinInner.appendChild(backFace);
-                coinContainer.appendChild(coinInner);
-
-                coinsDisplay.appendChild(coinContainer);
+            // 清空上一次的铜钱显示
+            if (coinsDisplay) {
+                coinsDisplay.innerHTML = '';
             }
 
-            // 获取所有铜钱元素
-            const coins = document.querySelectorAll('.coin');
+            // 创建三个铜钱
+            const coinElements = [];
+            for (let i = 0; i < 3; i++) {
+                const coin = createCoinElement();
+                coinElements.push(coin);
+                coinsDisplay?.appendChild(coin);
+            }
 
-            // 添加翻转动画
+            // 延迟开始动画
             setTimeout(() => {
                 const results = [];
 
-                coins.forEach(coin => {
+                coinElements.forEach((coin, index) => {
                     const isHeads = Math.random() < 0.5;
                     const finalRotation = isHeads ? '0deg' : '180deg';
 
-                    results.push(isHeads ? 3 : 2); // 3为阳，2为阴
+                    results.push(isHeads ? 3 : 2);
 
                     coin.classList.add('flipping');
                     coin.style.setProperty('--final-rotation', finalRotation);
                 });
 
-                // 等待动画结束后确定结果
+                // 等待动画结束
                 setTimeout(() => {
                     const sum = results.reduce((a, b) => a + b, 0);
-                    let lineType = '';
-                    let changing = false;
+                    const lineInfo = interpretCoinResult(sum);
 
-                    if (sum === 6) { // 老阴，变阳
-                        lineType = 'yin';
-                        changing = true;
-                    } else if (sum === 7) { // 少阳，不变
-                        lineType = 'yang';
-                        changing = false;
-                    } else if (sum === 8) { // 少阴，不变
-                        lineType = 'yin';
-                        changing = false;
-                    } else if (sum === 9) { // 老阳，变阴
-                        lineType = 'yang';
-                        changing = true;
-                    }
-
-                    lines.push({type: lineType, changing: changing});
+                    lines.push(lineInfo);
+                    displayCoinResult(results, lineInfo);
                     renderHexagram();
                     updateHexagramDisplay();
 
-                    // 播放音效
-                    playSound(lineType);
-
                     resolve();
-                }, 1500); // 等待翻转动画完成
+                }, 1500);
             }, 100);
         });
     }
 
-    // 播放音效
-    function playSound(type) {
-        // 在实际应用中可以添加音效
-        // 这里只是占位符
+    // 创建铜钱元素
+    function createCoinElement() {
+        const coinContainer = document.createElement('div');
+        coinContainer.className = 'coin';
+
+        const coinInner = document.createElement('div');
+        coinInner.className = 'coin-inner';
+
+        const frontFace = document.createElement('div');
+        frontFace.className = 'coin-face coin-front';
+        frontFace.textContent = '阳';
+
+        const backFace = document.createElement('div');
+        backFace.className = 'coin-face coin-back';
+        backFace.textContent = '阴';
+
+        coinInner.appendChild(frontFace);
+        coinInner.appendChild(backFace);
+        coinContainer.appendChild(coinInner);
+
+        return coinContainer;
+    }
+
+    // 解释铜钱结果
+    function interpretCoinResult(sum) {
+        const interpretations = {
+            6: { type: 'yin', changing: true, name: '老阴' },
+            7: { type: 'yang', changing: false, name: '少阳' },
+            8: { type: 'yin', changing: false, name: '少阴' },
+            9: { type: 'yang', changing: true, name: '老阳' }
+        };
+
+        return interpretations[sum] || interpretations[7];
+    }
+
+    // 显示铜钱结果
+    function displayCoinResult(coinResults, lineInfo) {
+        if (!coinsResult) return;
+
+        const resultText = `${coinResults.join(' + ')} = ${coinResults.reduce((a, b) => a + b, 0)} (${lineInfo.name})`;
+        coinsResult.textContent = resultText;
+
+        // 添加颜色指示
+        coinsResult.className = `coins-result ${lineInfo.changing ? 'changing' : 'stable'}`;
     }
 
     // 渲染卦象
     function renderHexagram(customLines = null) {
+        if (!hexagramContainer) return;
+
         const currentLines = customLines || lines;
         hexagramContainer.innerHTML = '';
 
+        if (currentLines.length === 0) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'hexagram-placeholder';
+            placeholder.innerHTML = '<div class="placeholder-text">请开始投掷铜钱形成卦象</div>';
+            hexagramContainer.appendChild(placeholder);
+            return;
+        }
+
         const fragment = document.createDocumentFragment();
         currentLines.forEach((lineObj, index) => {
-            const lineDiv = document.createElement('div');
-            lineDiv.classList.add('line', lineObj.type);
-
-            if (lineObj.changing) {
-                lineDiv.classList.add('changing');
-            }
-
-            // 计算当前爻是否当位
-            const lineBitIndex = 5 - index; // 从右到左对应从下到上的爻
-            const positionBit = positionCode.charAt(lineBitIndex);
-            const lineBit = lineObj.type === 'yang' ? '1' : '0';
-
-            if (lineBit !== positionBit) {
-                lineDiv.classList.add('not-position');
-            }
-
-            if (index === currentLines.length - 1) {
-                lineDiv.classList.add('new-line');
-            }
-
-            if (lineObj.type === 'yang') {
-                const segment = document.createElement('div');
-                segment.classList.add('segment');
-                lineDiv.appendChild(segment);
-            } else {
-                const segmentLeft = document.createElement('div');
-                segmentLeft.classList.add('segment', 'left');
-
-                const gap = document.createElement('div');
-                gap.classList.add('middle-gap');
-
-                const segmentRight = document.createElement('div');
-                segmentRight.classList.add('segment', 'right');
-
-                lineDiv.appendChild(segmentLeft);
-                lineDiv.appendChild(gap);
-                lineDiv.appendChild(segmentRight);
-            }
-
+            const lineDiv = createLineElement(lineObj, index, currentLines.length);
             fragment.appendChild(lineDiv);
         });
 
         hexagramContainer.appendChild(fragment);
     }
 
+    // 创建爻线元素
+    function createLineElement(lineObj, index, totalLines) {
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('line', lineObj.type);
+
+        if (lineObj.changing) {
+            lineDiv.classList.add('changing');
+        }
+
+        // 检查当位
+        const lineBitIndex = 5 - index;
+        const positionBit = positionCode.charAt(lineBitIndex);
+        const lineBit = lineObj.type === 'yang' ? '1' : '0';
+
+        if (lineBit !== positionBit) {
+            lineDiv.classList.add('not-position');
+        }
+
+        // 新添加的爻线动画
+        if (index === totalLines - 1) {
+            lineDiv.classList.add('new-line');
+        }
+
+        // 创建线段
+        if (lineObj.type === 'yang') {
+            const segment = document.createElement('div');
+            segment.classList.add('segment');
+            lineDiv.appendChild(segment);
+        } else {
+            const segmentLeft = document.createElement('div');
+            segmentLeft.classList.add('segment', 'left');
+
+            const gap = document.createElement('div');
+            gap.classList.add('middle-gap');
+
+            const segmentRight = document.createElement('div');
+            segmentRight.classList.add('segment', 'right');
+
+            lineDiv.appendChild(segmentLeft);
+            lineDiv.appendChild(gap);
+            lineDiv.appendChild(segmentRight);
+        }
+
+        return lineDiv;
+    }
+
+    // 处理占卜完成
+    function handleDivinationComplete() {
+        throwCoinBtn.disabled = true;
+        changeHexagramBtn.disabled = false;
+        saveBtn.disabled = false;
+        exportBtn.disabled = false;
+
+        updateStep(3);
+
+        // 显示完成通知
+        const changingCount = lines.filter(line => line.changing).length;
+        const message = changingCount > 0
+            ? `占卜完成！发现${changingCount}个变爻，建议查看变卦。`
+            : '占卜完成！未发现变爻，当前卦象稳定。';
+
+        YizhiApp.getModule('notification')?.show('success', '占卜完成', message);
+    }
+
     // 更新卦象显示
     function updateHexagramDisplay(customLines = null) {
-        if ((customLines || lines).length === 6) {
-            let code = '';
-            const currentLines = customLines || lines;
+        if (!YizhiApp.getModule('hexagramData')?.isInitialized) {
+            return;
+        }
 
-            for(let i = 5; i >= 0; i--){
-                code += (currentLines[i].type === 'yang') ? '1' : '0';
-            }
+        const currentLines = customLines || lines;
 
-            const hexagram = HexagramDataService.getHexagramByBinary(code);
+        if (currentLines.length !== 6) {
+            resetDisplays();
+            return;
+        }
 
-            if(hexagram){
-                hexagramNameDisplay.textContent = hexagram.name;
-                hexagramUnicodeDisplay.textContent = hexagram.unicode;
-                hexagramExplanationDisplay.textContent = hexagram.explanation || '';
+        try {
+            const binary = generateBinaryFromLines(currentLines);
+            const hexagram = YizhiApp.getModule('hexagramData').getHexagramByBinary(binary);
 
-                // 更新上下卦信息
+            if (hexagram) {
+                updateHexagramInfo(hexagram);
                 updateTrigramInfo(hexagram);
-
-                // 更新卦象详细内容
-                overviewContent.textContent = hexagram.overview || '暂无数据';
-                detailContent.textContent = hexagram.detail || '暂无数据';
-
-                // 更新爻辞内容
-                updateLinesContent(hexagram);
-
-                // 更新相关卦象
+                updateContentTabs(hexagram);
                 updateRelatedHexagrams(hexagram.id);
-
                 saveBtn.disabled = false;
+                exportBtn.disabled = false;
             } else {
-                hexagramNameDisplay.textContent = '未找到对应卦名';
-                hexagramUnicodeDisplay.textContent = '';
-                hexagramExplanationDisplay.textContent = '';
-                upperTrigramInfo.textContent = '';
-                lowerTrigramInfo.textContent = '';
-                overviewContent.textContent = '未找到该卦象的详细数据';
-                detailContent.textContent = '未找到该卦象的详细数据';
-                linesContent.textContent = '未找到该卦象的爻辞数据';
-                relationsContent.textContent = '未找到相关卦象数据';
+                showHexagramNotFound();
             }
-        } else {
-            hexagramNameDisplay.textContent = '待演算';
-            hexagramUnicodeDisplay.textContent = '';
-            hexagramExplanationDisplay.textContent = '';
-            upperTrigramInfo.textContent = '';
-            lowerTrigramInfo.textContent = '';
-            overviewContent.textContent = '请完成卦象演算以查看详细解读';
-            detailContent.textContent = '请完成卦象演算以查看详细解读';
-            linesContent.textContent = '请完成卦象演算以查看详细解读';
-            relationsContent.textContent = '请完成卦象演算以查看相关卦象';
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Update Hexagram Display');
+        }
+    }
+
+    // 从爻线生成二进制
+    function generateBinaryFromLines(currentLines) {
+        let binary = '';
+        for (let i = 5; i >= 0; i--) {
+            binary += currentLines[i].type === 'yang' ? '1' : '0';
+        }
+        return binary;
+    }
+
+    // 更新卦象基本信息
+    function updateHexagramInfo(hexagram) {
+        if (hexagramNameDisplay) {
+            hexagramNameDisplay.textContent = hexagram.name;
+        }
+        if (hexagramUnicodeDisplay) {
+            hexagramUnicodeDisplay.textContent = hexagram.unicode;
+        }
+        if (hexagramExplanationDisplay) {
+            hexagramExplanationDisplay.textContent = hexagram.explanation || '';
         }
     }
 
     // 更新上下卦信息
     function updateTrigramInfo(hexagram) {
+        if (!upperTrigramInfo || !lowerTrigramInfo) return;
+
         if (hexagram.upperTrigram && hexagram.lowerTrigram) {
-            const upperBagua = HexagramDataService.getBagua(hexagram.upperTrigram);
-            const lowerBagua = HexagramDataService.getBagua(hexagram.lowerTrigram);
+            const upperBagua = YizhiApp.getModule('hexagramData').getBagua(hexagram.upperTrigram);
+            const lowerBagua = YizhiApp.getModule('hexagramData').getBagua(hexagram.lowerTrigram);
 
-            if (upperBagua) {
-                upperTrigramInfo.textContent = `上卦: ${hexagram.upperTrigram} ${upperBagua.symbol} (${upperBagua.nature})`;
-            } else {
-                upperTrigramInfo.textContent = '';
-            }
+            upperTrigramInfo.textContent = upperBagua
+                ? `上卦: ${hexagram.upperTrigram} ${upperBagua.symbol} (${upperBagua.nature})`
+                : '';
 
-            if (lowerBagua) {
-                lowerTrigramInfo.textContent = `下卦: ${hexagram.lowerTrigram} ${lowerBagua.symbol} (${lowerBagua.nature})`;
-            } else {
-                lowerTrigramInfo.textContent = '';
-            }
+            lowerTrigramInfo.textContent = lowerBagua
+                ? `下卦: ${hexagram.lowerTrigram} ${lowerBagua.symbol} (${lowerBagua.nature})`
+                : '';
         } else {
             upperTrigramInfo.textContent = '';
             lowerTrigramInfo.textContent = '';
         }
     }
 
+    // 更新内容标签页
+    function updateContentTabs(hexagram) {
+        updateContent(overviewContent, hexagram.overview || '暂无数据');
+        updateContent(detailContent, hexagram.detail || '暂无数据');
+        updateLinesContent(hexagram);
+    }
+
+    // 更新内容
+    function updateContent(element, content) {
+        if (element) {
+            element.innerHTML = `<div class="content-text">${content}</div>`;
+        }
+    }
+
     // 更新爻辞内容
     function updateLinesContent(hexagram) {
+        if (!linesContent) return;
+
         linesContent.innerHTML = '';
 
         if (hexagram.lines && hexagram.lines.length > 0) {
             hexagram.lines.forEach(line => {
-                const lineDetail = document.createElement('div');
-                lineDetail.className = 'line-reading';
-
-                // 确保position和content字段存在
-                const position = line.position || 0;
-                const content = line.content || '暂无爻辞';
-
-                lineDetail.innerHTML = `
-                    <div class="line-position">第${position}爻</div>
-                    <p>${content}</p>
-                `;
-
-                // 如果与当前的变爻对应，添加特殊样式
-                if (lines[position - 1] && lines[position - 1].changing) {
-                    lineDetail.classList.add('changing-line-highlight');
-                }
-
+                const lineDetail = createLineDetail(line);
                 linesContent.appendChild(lineDetail);
             });
         } else {
-            linesContent.textContent = '暂无爻辞数据';
+            linesContent.innerHTML = '<div class="empty-state"><p>暂无爻辞数据</p></div>';
         }
+    }
+
+    // 创建爻辞详情元素
+    function createLineDetail(line) {
+        const lineDetail = document.createElement('div');
+        lineDetail.className = 'line-reading';
+
+        const position = line.position || 0;
+        const content = line.content || '暂无爻辞';
+
+        lineDetail.innerHTML = `
+            <div class="line-position">第${position}爻</div>
+            <p class="line-content">${content}</p>
+        `;
+
+        if (lines[position - 1]?.changing) {
+            lineDetail.classList.add('changing-line-highlight');
+        }
+
+        return lineDetail;
     }
 
     // 更新相关卦象
     function updateRelatedHexagrams(hexagramId) {
+        if (!relationsContent) return;
+
         relationsContent.innerHTML = '';
 
-        const related = HexagramDataService.getRelatedHexagrams(hexagramId);
+        const related = YizhiApp.getModule('hexagramData').getRelatedHexagrams(hexagramId);
 
         if (!related || Object.keys(related).length === 0) {
-            relationsContent.textContent = '暂无相关卦象数据';
+            relationsContent.innerHTML = '<div class="empty-state"><p>暂无相关卦象数据</p></div>';
             return;
         }
 
         const relationTypes = {
             opposite: '对宫卦',
             inverse: '综卦',
-            mutual: '互卦',
-            nuclear: '互卦'
+            mutual: '互卦'
         };
 
         for (const [type, hexagram] of Object.entries(related)) {
             if (!hexagram) continue;
 
-            const relationItem = document.createElement('div');
-            relationItem.className = 'relation-item';
-            relationItem.innerHTML = `
-                <div class="relation-symbol">${hexagram.unicode || ''}</div>
-                <div>
-                    <div class="relation-name">${hexagram.name || '未知卦象'}</div>
-                    <div class="relation-type">${relationTypes[type] || type}</div>
-                </div>
-            `;
-
-            relationItem.addEventListener('click', () => {
-                // 显示相关卦象的详细信息
-                showHexagramModal(hexagram);
-            });
-
+            const relationItem = createRelationItem(hexagram, relationTypes[type] || type);
             relationsContent.appendChild(relationItem);
         }
+    }
+
+    // 创建关系项元素
+    function createRelationItem(hexagram, typeName) {
+        const relationItem = document.createElement('div');
+        relationItem.className = 'relation-item';
+        relationItem.innerHTML = `
+            <div class="relation-symbol">${hexagram.unicode || ''}</div>
+            <div class="relation-info">
+                <div class="relation-name">${hexagram.name || '未知卦象'}</div>
+                <div class="relation-type">${typeName}</div>
+            </div>
+        `;
+
+        relationItem.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
+        });
+
+        return relationItem;
+    }
+
+    // 重置显示
+    function resetDisplays() {
+        if (hexagramNameDisplay) hexagramNameDisplay.textContent = '待演算';
+        if (hexagramUnicodeDisplay) hexagramUnicodeDisplay.textContent = '';
+        if (hexagramExplanationDisplay) hexagramExplanationDisplay.textContent = '';
+        if (upperTrigramInfo) upperTrigramInfo.textContent = '';
+        if (lowerTrigramInfo) lowerTrigramInfo.textContent = '';
+
+        const emptyState = '<div class="empty-state"><svg class="empty-icon" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,13H17V11H7"></path></svg><p>请完成卦象演算以查看详细解读</p></div>';
+
+        if (overviewContent) overviewContent.innerHTML = emptyState;
+        if (detailContent) detailContent.innerHTML = emptyState;
+        if (linesContent) linesContent.innerHTML = emptyState;
+        if (relationsContent) relationsContent.innerHTML = emptyState;
+    }
+
+    // 显示卦象未找到
+    function showHexagramNotFound() {
+        if (hexagramNameDisplay) hexagramNameDisplay.textContent = '未找到对应卦名';
+        if (hexagramUnicodeDisplay) hexagramUnicodeDisplay.textContent = '';
+        if (hexagramExplanationDisplay) hexagramExplanationDisplay.textContent = '';
+        resetDisplays();
     }
 
     // 变卦显示
     function toggleChangingLines() {
         if (lines.length !== 6) return;
 
-        if (transformed) {
-            // 如果已经变卦，恢复原始状态
-            renderHexagram();
-            updateHexagramDisplay();
-            changeHexagramBtn.textContent = '变卦显示';
-            transformed = false;
-        } else {
-            // 改变爻
-            const transformedLines = lines.map(line => {
-                if (line.changing) {
-                    return {
-                        type: line.type === 'yang' ? 'yin' : 'yang',
-                        changing: false // 改变后不再是变爻
-                    };
-                }
-                return {...line};
-            });
-            renderHexagram(transformedLines);
-            updateHexagramDisplay(transformedLines);
-            changeHexagramBtn.textContent = '恢复本卦';
-            transformed = true;
+        try {
+            if (transformed) {
+                renderHexagram();
+                updateHexagramDisplay();
+                changeHexagramBtn.textContent = '变卦显示';
+                transformed = false;
+            } else {
+                const transformedLines = lines.map(line => {
+                    if (line.changing) {
+                        return {
+                            type: line.type === 'yang' ? 'yin' : 'yang',
+                            changing: false
+                        };
+                    }
+                    return { ...line };
+                });
 
-            // 更新步骤为第四步
-            updateStep(4);
+                renderHexagram(transformedLines);
+                updateHexagramDisplay(transformedLines);
+                changeHexagramBtn.textContent = '恢复本卦';
+                transformed = true;
+                updateStep(4);
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Toggle Changing Lines');
+        }
+    }
+
+    // 处理重置
+    async function handleReset() {
+        const confirmed = await YizhiApp.confirm.show(
+            '确认重置',
+            '确定要重新开始占卜吗？当前进度将会丢失。',
+            { danger: true, okText: '重新开始' }
+        );
+
+        if (confirmed) {
+            resetDivination();
+            YizhiApp.getModule('notification')?.show('info', '重新起卦',
+                '已重置占卜，可以开始新的一次演算。');
         }
     }
 
@@ -1892,90 +2155,144 @@ const DivinationModule = (function() {
     function resetDivination() {
         lines = [];
         transformed = false;
-        hexagramContainer.innerHTML = '';
-        hexagramNameDisplay.textContent = '待演算';
-        hexagramUnicodeDisplay.textContent = '';
-        hexagramExplanationDisplay.textContent = '';
-        upperTrigramInfo.textContent = '';
-        lowerTrigramInfo.textContent = '';
-        overviewContent.textContent = '请完成卦象演算以查看详细解读';
-        detailContent.textContent = '请完成卦象演算以查看详细解读';
-        linesContent.textContent = '请完成卦象演算以查看详细解读';
-        relationsContent.textContent = '请完成卦象演算以查看相关卦象';
-        coinsDisplay.innerHTML = '';
+        animationInProgress = false;
 
+        renderHexagram();
+        resetDisplays();
+
+        if (coinsDisplay) coinsDisplay.innerHTML = '';
+        if (coinsResult) coinsResult.textContent = '';
+
+        // 重置按钮状态
         throwCoinBtn.disabled = false;
         changeHexagramBtn.disabled = true;
         saveBtn.disabled = true;
+        exportBtn.disabled = true;
         changeHexagramBtn.textContent = '变卦显示';
 
-        // 重置进度条
+        // 重置进度
         updateProgress(0);
-
-        // 重置步骤
+        updateProgressCount();
+        updateThrowButtonText();
         updateStep(1);
-
-        // 显示通知
-        NotificationModule.show('info', '重新起卦', '已重置占卜，可以开始新的一次演算。');
     }
 
     // 保存到历史记录
     function saveToHistory() {
         if (lines.length !== 6) return;
 
-        let code = '';
-        for(let i = 5; i >= 0; i--){
-            code += (lines[i].type === 'yang') ? '1' : '0';
+        try {
+            const binary = generateBinaryFromLines(lines);
+            const hexagram = YizhiApp.getModule('hexagramData').getHexagramByBinary(binary);
+
+            if (!hexagram) return;
+
+            const historyItem = {
+                id: YizhiApp.utils.generateId(),
+                date: YizhiApp.utils.formatDate(new Date()),
+                hexagram: hexagram,
+                lines: YizhiApp.utils.deepClone(lines),
+                notes: '',
+                changingLinesCount: lines.filter(line => line.changing).length
+            };
+
+            YizhiApp.getModule('history')?.addRecord(historyItem);
+            YizhiApp.getModule('notification')?.show('success', '保存成功',
+                '占卜结果已保存到历史记录。', 3000);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Save to History');
         }
+    }
 
-        const hexagram = HexagramDataService.getHexagramByBinary(code);
+    // 导出结果
+    function exportResult() {
+        if (lines.length !== 6) return;
 
-        if (!hexagram) return;
+        try {
+            const binary = generateBinaryFromLines(lines);
+            const hexagram = YizhiApp.getModule('hexagramData').getHexagramByBinary(binary);
 
-        const historyItem = {
-            id: Date.now(), // 使用时间戳作为唯一ID
-            date: new Date().toLocaleString(),
-            hexagram: hexagram,
-            lines: [...lines],
-            notes: '' // 可以添加用户笔记
-        };
+            if (!hexagram) return;
 
-        // 调用历史记录模块保存
-        HistoryModule.addRecord(historyItem);
+            const exportData = {
+                date: YizhiApp.utils.formatDate(new Date()),
+                hexagram: {
+                    name: hexagram.name,
+                    explanation: hexagram.explanation,
+                    overview: hexagram.overview,
+                    detail: hexagram.detail
+                },
+                lines: lines.map((line, index) => ({
+                    position: index + 1,
+                    type: line.type,
+                    changing: line.changing
+                })),
+                changingLinesCount: lines.filter(line => line.changing).length
+            };
 
-        // 显示通知
-        NotificationModule.show('success', '保存成功', '占卜结果已保存到历史记录。', 3000);
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `易之占卜_${hexagram.name}_${YizhiApp.utils.formatDate(new Date(), 'YYYY-MM-DD_HH-mm-ss')}.json`;
+            link.click();
+
+            URL.revokeObjectURL(link.href);
+
+            YizhiApp.getModule('notification')?.show('success', '导出成功',
+                '占卜结果已导出到本地文件。');
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Export Result');
+        }
     }
 
     // 更新进度条
     function updateProgress(percentage) {
-        progressBar.style.width = `${percentage}%`;
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+
+    // 更新进度计数
+    function updateProgressCount() {
+        if (progressCount) {
+            progressCount.textContent = `${lines.length}/6`;
+        }
+    }
+
+    // 更新投掷按钮文本
+    function updateThrowButtonText() {
+        if (throwSubtitle) {
+            throwSubtitle.textContent = lines.length < 6 ? `第${lines.length + 1}爻` : '已完成';
+        }
     }
 
     // 更新步骤指引
     function updateStep(step) {
         Object.values(steps).forEach(stepEl => {
-            stepEl.classList.remove('active', 'completed');
+            if (stepEl) {
+                stepEl.classList.remove('active', 'completed');
+            }
         });
 
         for (let i = 1; i < step; i++) {
-            steps[`step${i}`].classList.add('completed');
+            if (steps[`step${i}`]) {
+                steps[`step${i}`].classList.add('completed');
+            }
         }
 
-        steps[`step${step}`].classList.add('active');
-    }
-
-    // 显示卦象详情模态框
-    function showHexagramModal(hexagram) {
-        // 调用模态框模块显示卦象详情
-        ModalModule.show(hexagram);
+        if (steps[`step${step}`]) {
+            steps[`step${step}`].classList.add('active');
+        }
     }
 
     return {
         init,
         onActivate,
         renderHexagram,
-        updateHexagramDisplay
+        updateHexagramDisplay,
+        resetDivination
     };
 })();
 
@@ -1986,21 +2303,34 @@ const HistoryModule = (function() {
     // 私有变量
     const historyList = document.getElementById('historyList');
     const filterButtons = document.querySelectorAll('.filter-item');
+    const historySearchInput = document.getElementById('historySearchInput');
+    const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const totalRecords = document.getElementById('totalRecords');
+    const thisWeekRecords = document.getElementById('thisWeekRecords');
+    const changingLines = document.getElementById('changingLines');
+
     let currentFilter = 'all';
+    let searchQuery = '';
+    const STORAGE_KEY = 'divination_history';
 
     // 初始化
     function init() {
-        // 初始化筛选器
-        initFilters();
-
-        // 加载历史记录
-        updateHistoryDisplay();
+        try {
+            initFilters();
+            initSearch();
+            initExportClear();
+            updateHistoryDisplay();
+            updateStats();
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'History Module Init');
+        }
     }
 
     // 激活时的操作
     function onActivate() {
-        // 刷新历史记录显示
         updateHistoryDisplay();
+        updateStats();
     }
 
     // 初始化筛选器
@@ -2022,148 +2352,286 @@ const HistoryModule = (function() {
         });
     }
 
+    // 初始化搜索
+    function initSearch() {
+        if (historySearchInput) {
+            historySearchInput.addEventListener('input', YizhiApp.utils.debounce((e) => {
+                searchQuery = e.target.value.trim();
+                updateHistoryDisplay();
+            }, 300));
+        }
+    }
+
+    // 初始化导出和清空按钮
+    function initExportClear() {
+        exportHistoryBtn?.addEventListener('click', exportHistory);
+        clearHistoryBtn?.addEventListener('click', clearHistory);
+    }
+
     // 添加历史记录
     function addRecord(record) {
-        // 获取现有历史记录
-        let history = getHistoryRecords();
+        try {
+            let history = getHistoryRecords();
+            history.unshift(record);
 
-        // 添加新记录
-        history.unshift(record);
+            // 限制历史记录数量
+            if (history.length > 200) {
+                history = history.slice(0, 200);
+            }
 
-        // 限制历史记录数量
-        if (history.length > 100) {
-            history = history.slice(0, 100);
+            YizhiApp.storage.setItem(STORAGE_KEY, history);
+            updateHistoryDisplay();
+            updateStats();
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Add History Record');
         }
-
-        // 保存到本地存储
-        localStorage.setItem('iChingHistory', JSON.stringify(history));
-
-        // 更新历史记录显示
-        updateHistoryDisplay();
     }
 
     // 获取历史记录
     function getHistoryRecords() {
-        return JSON.parse(localStorage.getItem('iChingHistory')) || [];
+        return YizhiApp.storage.getItem(STORAGE_KEY, []);
     }
 
     // 获取筛选后的历史记录
     function getFilteredRecords() {
-        const allRecords = getHistoryRecords();
+        try {
+            let allRecords = getHistoryRecords();
 
-        if (currentFilter === 'all') {
-            return allRecords;
-        }
+            // 应用时间筛选
+            if (currentFilter !== 'all') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - now.getDay());
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                allRecords = allRecords.filter(record => {
+                    const recordDate = new Date(record.date);
 
-        return allRecords.filter(record => {
-            const recordDate = new Date(record.date);
-
-            switch (currentFilter) {
-                case 'today':
-                    return recordDate >= today;
-                case 'week':
-                    return recordDate >= weekStart;
-                case 'month':
-                    return recordDate >= monthStart;
-                default:
-                    return true;
+                    switch (currentFilter) {
+                        case 'today':
+                            return recordDate >= today;
+                        case 'week':
+                            return recordDate >= weekStart;
+                        case 'month':
+                            return recordDate >= monthStart;
+                        default:
+                            return true;
+                    }
+                });
             }
-        });
+
+            // 应用搜索筛选
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                allRecords = allRecords.filter(record => {
+                    return record.hexagram.name.toLowerCase().includes(query) ||
+                           record.hexagram.explanation.toLowerCase().includes(query) ||
+                           (record.notes && record.notes.toLowerCase().includes(query));
+                });
+            }
+
+            return allRecords;
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Get Filtered Records');
+            return [];
+        }
     }
 
     // 删除历史记录
     function deleteRecord(id) {
-        let history = getHistoryRecords();
+        try {
+            let history = getHistoryRecords();
+            history = history.filter(record => record.id !== id);
+            YizhiApp.storage.setItem(STORAGE_KEY, history);
+            updateHistoryDisplay();
+            updateStats();
 
-        // 筛选出不包含指定ID的记录
-        history = history.filter(record => record.id !== id);
-
-        // 保存到本地存储
-        localStorage.setItem('iChingHistory', JSON.stringify(history));
-
-        // 更新历史记录显示
-        updateHistoryDisplay();
-
-        // 显示通知
-        NotificationModule.show('info', '删除成功', '历史记录已删除。', 3000);
+            YizhiApp.getModule('notification')?.show('info', '删除成功', '历史记录已删除。');
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Delete History Record');
+        }
     }
 
     // 更新历史记录显示
     function updateHistoryDisplay() {
-        const records = getFilteredRecords();
+        if (!historyList) return;
 
-        if (records.length === 0) {
-            historyList.innerHTML = '<div class="empty-history">暂无历史记录</div>';
-            return;
+        try {
+            const records = getFilteredRecords();
+
+            if (records.length === 0) {
+                historyList.innerHTML = createEmptyState();
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            records.forEach(record => {
+                const historyItem = createHistoryItem(record);
+                fragment.appendChild(historyItem);
+            });
+
+            historyList.innerHTML = '';
+            historyList.appendChild(fragment);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Update History Display');
         }
+    }
 
-        historyList.innerHTML = '';
+    // 创建空状态
+    function createEmptyState() {
+        return `
+            <div class="empty-history">
+                <svg class="empty-icon" viewBox="0 0 24 24">
+                    <path d="M13,3C9.1,3,6,6.1,6,10h1.6L5,13.5L2.4,10H4c0-5,4-9,9-9s9,4,9,9s-4,9-9,9c-2.4,0-4.6-0.9-6.3-2.6L5.3,17.8C7.5,20.1,10.1,21,13,21c5.5,0,10-4.5,10-10S18.5,3,13,3z"></path>
+                </svg>
+                <h3>暂无历史记录</h3>
+                <p>${searchQuery ? '没有找到匹配的记录' : '您还没有保存任何占卜记录'}</p>
+                ${!searchQuery ? '<button class="btn btn-primary" onclick="document.querySelector(\'[data-section=divination]\').click()">开始占卜</button>' : ''}
+            </div>
+        `;
+    }
 
-        records.forEach((record) => {
-            const historyItem = document.createElement('div');
-            historyItem.className = 'history-item';
+    // 创建历史记录项
+    function createHistoryItem(record) {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
 
-            const itemContent = document.createElement('div');
-            itemContent.className = 'history-item-content';
+        const changingText = record.changingLinesCount > 0
+            ? `<span class="changing-indicator">${record.changingLinesCount}变</span>`
+            : '';
 
-            // 确保所有必要字段都存在
-            const hexagram = record.hexagram || {};
-            const name = hexagram.name || '未知卦象';
-            const unicode = hexagram.unicode || '';
-            const explanation = hexagram.explanation || '';
-
-            itemContent.innerHTML = `
+        historyItem.innerHTML = `
+            <div class="history-item-content">
                 <div class="history-date">${record.date}</div>
                 <div class="history-item-header">
-                    <div class="history-hexagram-name">${name}</div>
-                    <div class="history-unicode">${unicode}</div>
+                    <div class="history-hexagram-name">${record.hexagram.name}</div>
+                    <div class="history-unicode">${record.hexagram.unicode || ''}</div>
                 </div>
-                <div class="history-text">${explanation}</div>
+                <div class="history-text">${record.hexagram.explanation}</div>
+                ${changingText}
                 ${record.notes ? `<div class="history-notes">${record.notes}</div>` : ''}
                 <div class="history-actions">
-                    <button class="history-action view-action tooltip" data-tooltip="查看详情">
+                    <button class="history-action view-action tooltip" data-tooltip="查看详情" aria-label="查看详情">
                         <svg class="icon icon-sm" viewBox="0 0 24 24">
                             <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"></path>
                         </svg>
                     </button>
-                    <button class="history-action delete-action tooltip" data-tooltip="删除记录">
+                    <button class="history-action delete-action tooltip" data-tooltip="删除记录" aria-label="删除记录">
                         <svg class="icon icon-sm" viewBox="0 0 24 24">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
                         </svg>
                     </button>
                 </div>
-            `;
+            </div>
+        `;
 
-            // 查看详情按钮点击事件
-            const viewBtn = itemContent.querySelector('.view-action');
-            viewBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                ModalModule.show(record.hexagram);
-            });
+        // 绑定事件
+        const viewBtn = historyItem.querySelector('.view-action');
+        const deleteBtn = historyItem.querySelector('.delete-action');
 
-            // 删除按钮点击事件
-            const deleteBtn = itemContent.querySelector('.delete-action');
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (confirm('确定要删除这条历史记录吗？')) {
-                    deleteRecord(record.id);
-                }
-            });
-
-            // 点击整个记录项查看详情
-            itemContent.addEventListener('click', () => {
-                ModalModule.show(record.hexagram);
-            });
-
-            historyItem.appendChild(itemContent);
-            historyList.appendChild(historyItem);
+        viewBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            YizhiApp.getModule('modal')?.show(record.hexagram);
         });
+
+        deleteBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const confirmed = await YizhiApp.confirm.show(
+                '确认删除',
+                '确定要删除这条历史记录吗？',
+                { danger: true }
+            );
+            if (confirmed) {
+                deleteRecord(record.id);
+            }
+        });
+
+        // 点击整个记录项查看详情
+        historyItem.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(record.hexagram);
+        });
+
+        return historyItem;
+    }
+
+    // 更新统计信息
+    function updateStats() {
+        try {
+            const allRecords = getHistoryRecords();
+            const now = new Date();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getDay());
+
+            const weekRecords = allRecords.filter(record => {
+                return new Date(record.date) >= weekStart;
+            });
+
+            const changingRecords = allRecords.filter(record => {
+                return record.changingLinesCount > 0;
+            });
+
+            if (totalRecords) totalRecords.textContent = allRecords.length;
+            if (thisWeekRecords) thisWeekRecords.textContent = weekRecords.length;
+            if (changingLines) changingLines.textContent = changingRecords.length;
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Update Stats');
+        }
+    }
+
+    // 导出历史记录
+    function exportHistory() {
+        try {
+            const records = getHistoryRecords();
+            if (records.length === 0) {
+                YizhiApp.getModule('notification')?.show('info', '无数据', '没有历史记录可以导出。');
+                return;
+            }
+
+            const exportData = {
+                exported_at: YizhiApp.utils.formatDate(new Date()),
+                version: YizhiApp.config.version,
+                total_records: records.length,
+                records: records
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `易之历史记录_${YizhiApp.utils.formatDate(new Date(), 'YYYY-MM-DD_HH-mm-ss')}.json`;
+            link.click();
+
+            URL.revokeObjectURL(link.href);
+
+            YizhiApp.getModule('notification')?.show('success', '导出成功',
+                `已导出 ${records.length} 条历史记录。`);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Export History');
+        }
+    }
+
+    // 清空历史记录
+    async function clearHistory() {
+        try {
+            const confirmed = await YizhiApp.confirm.show(
+                '确认清空',
+                '确定要清空所有历史记录吗？此操作不可恢复。',
+                { danger: true, okText: '清空全部' }
+            );
+
+            if (confirmed) {
+                YizhiApp.storage.removeItem(STORAGE_KEY);
+                updateHistoryDisplay();
+                updateStats();
+
+                YizhiApp.getModule('notification')?.show('success', '清空成功',
+                    '所有历史记录已被清空。');
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Clear History');
+        }
     }
 
     return {
@@ -2171,7 +2639,9 @@ const HistoryModule = (function() {
         onActivate,
         addRecord,
         getHistoryRecords,
-        deleteRecord
+        deleteRecord,
+        exportHistory,
+        clearHistory
     };
 })();
 
@@ -2183,60 +2653,207 @@ const HexagramAnalyzerModule = (function() {
     const upperBagua = document.getElementById('upperBagua');
     const lowerBagua = document.getElementById('lowerBagua');
     const combinationResult = document.getElementById('combinationResult');
+    const quickComboGrid = document.getElementById('quickComboGrid');
+
+    // 常用组合
+    const commonCombinations = [
+        { upper: '乾', lower: '乾', name: '乾为天' },
+        { upper: '坤', lower: '坤', name: '坤为地' },
+        { upper: '坎', lower: '坎', name: '坎为水' },
+        { upper: '离', lower: '离', name: '离为火' },
+        { upper: '震', lower: '震', name: '震为雷' },
+        { upper: '巽', lower: '巽', name: '巽为风' },
+        { upper: '艮', lower: '艮', name: '艮为山' },
+        { upper: '兑', lower: '兑', name: '兑为泽' }
+    ];
 
     // 初始化
     function init() {
-        // 添加事件监听器
-        upperBagua.addEventListener('change', analyzeCombination);
-        lowerBagua.addEventListener('change', analyzeCombination);
+        try {
+            bindEvents();
+            initQuickCombinations();
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Hexagram Analyzer Module Init');
+        }
+    }
+
+    // 绑定事件
+    function bindEvents() {
+        upperBagua?.addEventListener('change', analyzeCombination);
+        lowerBagua?.addEventListener('change', analyzeCombination);
+    }
+
+    // 初始化常用组合
+    function initQuickCombinations() {
+        if (!quickComboGrid) return;
+
+        const fragment = document.createDocumentFragment();
+        commonCombinations.forEach(combo => {
+            const comboItem = createQuickComboItem(combo);
+            fragment.appendChild(comboItem);
+        });
+
+        quickComboGrid.appendChild(fragment);
+    }
+
+    // 创建快速组合项
+    function createQuickComboItem(combo) {
+        const item = document.createElement('div');
+        item.className = 'quick-combo-item';
+
+        const upperBaguaData = YizhiApp.getModule('hexagramData')?.getBagua(combo.upper);
+        const lowerBaguaData = YizhiApp.getModule('hexagramData')?.getBagua(combo.lower);
+
+        item.innerHTML = `
+            <div class="combo-symbols">
+                <span class="combo-symbol">${upperBaguaData?.symbol || ''}</span>
+                <span class="combo-symbol">${lowerBaguaData?.symbol || ''}</span>
+            </div>
+            <div class="combo-name">${combo.name}</div>
+        `;
+
+        item.addEventListener('click', () => {
+            if (upperBagua) upperBagua.value = combo.upper;
+            if (lowerBagua) lowerBagua.value = combo.lower;
+            analyzeCombination();
+        });
+
+        return item;
     }
 
     // 激活时的操作
     function onActivate() {
-        // 可以在此处添加激活时的逻辑
+        // 重新分析当前组合
+        analyzeCombination();
     }
 
     // 分析卦象组合
     function analyzeCombination() {
-        const upper = upperBagua.value;
-        const lower = lowerBagua.value;
+        if (!combinationResult) return;
 
-        if (!upper || !lower) {
-            combinationResult.innerHTML = '<div class="text-center">选择上下卦以查看组合结果</div>';
+        try {
+            const upper = upperBagua?.value;
+            const lower = lowerBagua?.value;
+
+            if (!upper || !lower) {
+                showEmptyResult();
+                return;
+            }
+
+            const hexagramDataService = YizhiApp.getModule('hexagramData');
+            if (!hexagramDataService?.isInitialized) {
+                showLoadingResult();
+                return;
+            }
+
+            const hexagram = hexagramDataService.getHexagramByTrigrams(upper, lower);
+
+            if (hexagram) {
+                showCombinationResult(upper, lower, hexagram);
+            } else {
+                showNotFoundResult();
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Analyze Combination');
+            showErrorResult();
+        }
+    }
+
+    // 显示空结果
+    function showEmptyResult() {
+        combinationResult.innerHTML = `
+            <div class="result-placeholder">
+                <svg class="placeholder-icon" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"></path>
+                </svg>
+                <p>选择上下卦以查看组合结果</p>
+            </div>
+        `;
+    }
+
+    // 显示加载结果
+    function showLoadingResult() {
+        combinationResult.innerHTML = `
+            <div class="result-loading">
+                <div class="loading-spinner">
+                    <div class="taiji-spinner"></div>
+                </div>
+                <p>正在加载卦象数据...</p>
+            </div>
+        `;
+    }
+
+    // 显示组合结果
+    function showCombinationResult(upper, lower, hexagram) {
+        const upperBaguaData = YizhiApp.getModule('hexagramData').getBagua(upper);
+        const lowerBaguaData = YizhiApp.getModule('hexagramData').getBagua(lower);
+
+        if (!upperBaguaData || !lowerBaguaData) {
+            showErrorResult();
             return;
         }
 
-        const hexagram = HexagramDataService.getHexagramByTrigrams(upper, lower);
-
-        if (hexagram) {
-            const upperBaguaData = HexagramDataService.getBagua(upper);
-            const lowerBaguaData = HexagramDataService.getBagua(lower);
-
-            if (upperBaguaData && lowerBaguaData) {
-                combinationResult.innerHTML = `
-                    <div class="combination-formula">
-                        <div class="combination-symbol">${upperBaguaData.symbol}</div>
-                        <span class="operator">+</span>
-                        <div class="combination-symbol">${lowerBaguaData.symbol}</div>
-                        <span class="equals">=</span>
-                        <div class="result-hexagram">
-                            <div class="combination-symbol">${hexagram.unicode || ''}</div>
-                            <div class="result-name">${hexagram.name} · ${hexagram.explanation || ''}</div>
-                        </div>
+        combinationResult.innerHTML = `
+            <div class="combination-formula">
+                <div class="formula-part">
+                    <div class="combination-symbol">${upperBaguaData.symbol}</div>
+                    <div class="symbol-label">${upper}</div>
+                </div>
+                <span class="operator">+</span>
+                <div class="formula-part">
+                    <div class="combination-symbol">${lowerBaguaData.symbol}</div>
+                    <div class="symbol-label">${lower}</div>
+                </div>
+                <span class="equals">=</span>
+                <div class="result-hexagram">
+                    <div class="combination-symbol result-unicode">${hexagram.unicode || ''}</div>
+                    <div class="result-info">
+                        <div class="result-name">${hexagram.name}</div>
+                        <div class="result-explanation">${hexagram.explanation || ''}</div>
                     </div>
-                `;
+                </div>
+            </div>
+            <div class="combination-details">
+                <p class="combination-overview">${hexagram.overview || '暂无详细描述'}</p>
+                <button class="btn btn-outline btn-sm view-details-btn">查看详情</button>
+            </div>
+        `;
 
-                // 添加点击事件查看详情
-                const resultHexagram = combinationResult.querySelector('.result-hexagram');
-                resultHexagram.addEventListener('click', () => {
-                    ModalModule.show(hexagram);
-                });
-            } else {
-                combinationResult.innerHTML = '<div class="text-center">八卦数据不完整</div>';
-            }
-        } else {
-            combinationResult.innerHTML = '<div class="text-center">未找到对应卦象</div>';
-        }
+        // 添加查看详情按钮事件
+        const viewDetailsBtn = combinationResult.querySelector('.view-details-btn');
+        viewDetailsBtn?.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
+        });
+
+        // 添加点击整个结果区域查看详情
+        const resultHexagram = combinationResult.querySelector('.result-hexagram');
+        resultHexagram?.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
+        });
+    }
+
+    // 显示未找到结果
+    function showNotFoundResult() {
+        combinationResult.innerHTML = `
+            <div class="result-error">
+                <svg class="error-icon" viewBox="0 0 24 24">
+                    <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"></path>
+                </svg>
+                <p>未找到对应的卦象组合</p>
+            </div>
+        `;
+    }
+
+    // 显示错误结果
+    function showErrorResult() {
+        combinationResult.innerHTML = `
+            <div class="result-error">
+                <svg class="error-icon" viewBox="0 0 24 24">
+                    <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"></path>
+                </svg>
+                <p>卦象数据加载失败，请稍后重试</p>
+            </div>
+        `;
     }
 
     return {
@@ -2251,66 +2868,65 @@ const HexagramAnalyzerModule = (function() {
 const KnowledgeModule = (function() {
     // 私有变量
     const baguaGrid = document.getElementById('baguaGrid');
+    const featuredHexagrams = document.getElementById('featuredHexagrams');
+
+    // 精选卦象（用于展示）
+    const featuredHexagramIds = [1, 2, 11, 12, 63, 64]; // 乾、坤、泰、否、既济、未济
 
     // 初始化
     function init() {
-        // 初始化八卦知识区域
-        initBaguaKnowledge();
+        try {
+            initBaguaKnowledge();
+
+            // 监听卦象数据准备完成事件
+            YizhiApp.events.on('hexagram-data:ready', () => {
+                initFeaturedHexagrams();
+            });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Knowledge Module Init');
+        }
     }
 
     // 激活时的操作
     function onActivate() {
-        // 可以在此处添加激活时的逻辑
+        // 可以添加激活时的特殊逻辑
     }
 
     // 初始化八卦知识
     function initBaguaKnowledge() {
-        const baguaData = HexagramDataService.getBaguaData();
+        if (!baguaGrid) return;
 
-        for (const [name, data] of Object.entries(baguaData)) {
-            let propertiesHTML = '';
-
-            for (const [key, value] of Object.entries(data)) {
-                if (key === 'symbol' || key === 'binary') continue;
-                propertiesHTML += `
-                    <div class="bagua-property">
-                        <span class="property-label">${getPropertyLabel(key)}:</span>
-                        <span class="property-value">${value}</span>
-                    </div>
-                `;
+        try {
+            // 等待卦象数据准备就绪
+            const hexagramDataService = YizhiApp.getModule('hexagramData');
+            if (!hexagramDataService?.isInitialized) {
+                // 如果数据还没准备好，稍后再试
+                setTimeout(() => initBaguaKnowledge(), 100);
+                return;
             }
 
-            const baguaCard = document.createElement('div');
-            baguaCard.className = 'bagua-card';
+            const baguaData = hexagramDataService.getBaguaData();
+            const fragment = document.createDocumentFragment();
 
-            const baguaContent = document.createElement('div');
-            baguaContent.className = 'bagua-content';
+            for (const [name, data] of Object.entries(baguaData)) {
+                const baguaCard = createBaguaCard(name, data);
+                fragment.appendChild(baguaCard);
+            }
 
-            baguaContent.innerHTML = `
-                <div class="bagua-header">
-                    <div class="bagua-symbol">${data.symbol}</div>
-                    <div class="bagua-name">${name}</div>
-                </div>
-                <div class="bagua-properties">
-                    ${propertiesHTML}
-                </div>
-            `;
-
-            baguaCard.appendChild(baguaContent);
-
-            // 添加点击事件查看相关卦象
-            baguaCard.addEventListener('click', () => {
-                // 在未来版本中可以添加查看由该八卦组成的卦象功能
-                NotificationModule.show('info', '相关卦象', `点击查看包含${name}卦的所有卦象`, 3000);
-            });
-
-            baguaGrid.appendChild(baguaCard);
+            baguaGrid.innerHTML = '';
+            baguaGrid.appendChild(fragment);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Init Bagua Knowledge');
         }
     }
 
-    // 获取属性标签
-    function getPropertyLabel(key) {
-        const labels = {
+    // 创建八卦卡片
+    function createBaguaCard(name, data) {
+        const baguaCard = document.createElement('div');
+        baguaCard.className = 'bagua-card';
+
+        let propertiesHTML = '';
+        const propertyLabels = {
             'nature': '本性',
             'attribute': '特质',
             'direction': '方位',
@@ -2318,7 +2934,113 @@ const KnowledgeModule = (function() {
             'element': '五行',
             'family': '家人'
         };
-        return labels[key] || key;
+
+        for (const [key, value] of Object.entries(data)) {
+            if (key === 'symbol' || key === 'binary') continue;
+            const label = propertyLabels[key] || key;
+            propertiesHTML += `
+                <div class="bagua-property">
+                    <span class="property-label">${label}:</span>
+                    <span class="property-value">${value}</span>
+                </div>
+            `;
+        }
+
+        baguaCard.innerHTML = `
+            <div class="bagua-content">
+                <div class="bagua-header">
+                    <div class="bagua-symbol">${data.symbol}</div>
+                    <div class="bagua-info">
+                        <div class="bagua-name">${name}</div>
+                        <div class="bagua-nature">${data.nature}</div>
+                    </div>
+                </div>
+                <div class="bagua-properties">
+                    ${propertiesHTML}
+                </div>
+            </div>
+        `;
+
+        // 添加点击事件
+        baguaCard.addEventListener('click', () => {
+            showBaguaDetails(name, data);
+        });
+
+        return baguaCard;
+    }
+
+    // 显示八卦详情
+    function showBaguaDetails(name, data) {
+        const modalContent = {
+            name: `${name}卦详解`,
+            unicode: data.symbol,
+            explanation: `${data.nature} - ${data.attribute}`,
+            overview: `${name}卦象征${data.nature}，具有${data.attribute}的特质。在八卦系统中，${name}卦代表${data.family}的位置，五行属${data.element}，方位在${data.direction}，对应的动物是${data.animal}。`,
+            detail: `
+                <div class="bagua-detailed">
+                    <h4>卦象结构</h4>
+                    <p>二进制：${data.binary}</p>
+                    <p>符号：${data.symbol}</p>
+                    
+                    <h4>象征意义</h4>
+                    <p>本性：${data.nature}</p>
+                    <p>特质：${data.attribute}</p>
+                    
+                    <h4>对应关系</h4>
+                    <p>方位：${data.direction}</p>
+                    <p>五行：${data.element}</p>
+                    <p>动物：${data.animal}</p>
+                    <p>家人：${data.family}</p>
+                </div>
+            `
+        };
+
+        YizhiApp.getModule('modal')?.show(modalContent);
+    }
+
+    // 初始化精选卦象
+    function initFeaturedHexagrams() {
+        if (!featuredHexagrams) return;
+
+        try {
+            const hexagramDataService = YizhiApp.getModule('hexagramData');
+            if (!hexagramDataService?.isInitialized) return;
+
+            const fragment = document.createDocumentFragment();
+
+            featuredHexagramIds.forEach(id => {
+                const hexagram = hexagramDataService.getHexagramById(id);
+                if (hexagram) {
+                    const featuredItem = createFeaturedItem(hexagram);
+                    fragment.appendChild(featuredItem);
+                }
+            });
+
+            featuredHexagrams.innerHTML = '';
+            featuredHexagrams.appendChild(fragment);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Init Featured Hexagrams');
+        }
+    }
+
+    // 创建精选卦象项
+    function createFeaturedItem(hexagram) {
+        const item = document.createElement('div');
+        item.className = 'featured-item';
+
+        item.innerHTML = `
+            <div class="featured-symbol">${hexagram.unicode || ''}</div>
+            <div class="featured-info">
+                <div class="featured-name">${hexagram.name}</div>
+                <div class="featured-explanation">${hexagram.explanation}</div>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
+        });
+
+        return item;
     }
 
     return {
@@ -2333,85 +3055,384 @@ const KnowledgeModule = (function() {
 const SearchModule = (function() {
     // 私有变量
     const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
     const searchTags = document.querySelectorAll('.search-tag');
+    const categoryFilter = document.getElementById('categoryFilter');
     const searchResults = document.getElementById('searchResults');
+    const searchStats = document.getElementById('searchStats');
+    const resultCount = document.getElementById('resultCount');
+    const featuredHexagrams = document.getElementById('featuredHexagrams');
+
+    let currentQuery = '';
+    let currentCategory = '';
+    let searchHistory = [];
 
     // 初始化
     function init() {
-        // 添加事件监听器
-        searchInput.addEventListener('input', handleSearch);
+        try {
+            initSearchInput();
+            initSearchTags();
+            initCategoryFilter();
+            loadSearchHistory();
 
-        // 添加标签点击事件
+            // 监听卦象数据准备完成事件
+            YizhiApp.events.on('hexagram-data:ready', () => {
+                initFeaturedHexagrams();
+            });
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Search Module Init');
+        }
+    }
+
+    // 初始化搜索输入框
+    function initSearchInput() {
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', YizhiApp.utils.debounce((e) => {
+            currentQuery = e.target.value.trim();
+            updateClearButton();
+            handleSearch();
+        }, 300));
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearch();
+            }
+        });
+
+        searchClear?.addEventListener('click', () => {
+            clearSearch();
+        });
+    }
+
+    // 初始化搜索标签
+    function initSearchTags() {
         searchTags.forEach(tag => {
             tag.addEventListener('click', () => {
                 const keyword = tag.getAttribute('data-keyword');
                 searchInput.value = keyword;
+                currentQuery = keyword;
+                updateClearButton();
                 handleSearch();
+                addToSearchHistory(keyword);
             });
+        });
+    }
+
+    // 初始化分类筛选
+    function initCategoryFilter() {
+        categoryFilter?.addEventListener('change', (e) => {
+            currentCategory = e.target.value;
+            handleSearch();
         });
     }
 
     // 激活时的操作
     function onActivate() {
-        // 清空之前的搜索结果
-        searchInput.value = '';
-        searchResults.innerHTML = '';
+        searchInput?.focus();
+        if (currentQuery) {
+            handleSearch();
+        }
     }
 
     // 处理搜索
     function handleSearch() {
-        const searchTerm = searchInput.value.trim();
-        searchResults.innerHTML = '';
+        try {
+            if (!searchResults) return;
 
-        if (searchTerm.length === 0) return;
+            const hexagramDataService = YizhiApp.getModule('hexagramData');
+            if (!hexagramDataService?.isInitialized) {
+                showLoadingResults();
+                return;
+            }
 
-        const results = HexagramDataService.searchHexagrams(searchTerm);
+            if (!currentQuery && !currentCategory) {
+                showEmptyResults();
+                hideStats();
+                return;
+            }
 
+            const results = performSearch();
+            displayResults(results);
+            updateStats(results.length);
+
+            // 添加到搜索历史
+            if (currentQuery) {
+                addToSearchHistory(currentQuery);
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Handle Search');
+            showErrorResults();
+        }
+    }
+
+    // 执行搜索
+    function performSearch() {
+        const hexagramDataService = YizhiApp.getModule('hexagramData');
+        let results = [];
+
+        if (currentQuery) {
+            results = hexagramDataService.searchHexagrams(currentQuery);
+        } else {
+            results = hexagramDataService.getAllHexagrams();
+        }
+
+        // 应用分类筛选
+        if (currentCategory) {
+            results = results.filter(hexagram => {
+                return matchesCategory(hexagram, currentCategory);
+            });
+        }
+
+        return results;
+    }
+
+    // 检查是否匹配分类
+    function matchesCategory(hexagram, category) {
+        // 简单的分类匹配逻辑，实际应用中可能需要更复杂的规则
+        switch (category) {
+            case 'fortune':
+                return ['吉', '利', '亨', '元'].some(char =>
+                    hexagram.explanation.includes(char));
+            case 'career':
+                return ['进', '升', '行', '动'].some(char =>
+                    hexagram.explanation.includes(char));
+            case 'relationship':
+                return ['和', '合', '交', '比'].some(char =>
+                    hexagram.explanation.includes(char));
+            default:
+                return true;
+        }
+    }
+
+    // 显示搜索结果
+    function displayResults(results) {
         if (results.length === 0) {
-            searchResults.innerHTML = '<div class="text-center mt-xl">没有找到匹配的卦象</div>';
+            showNoResults();
             return;
         }
 
+        const fragment = document.createDocumentFragment();
         results.forEach(hexagram => {
-            const searchItem = document.createElement('div');
-            searchItem.className = 'search-item';
+            const searchItem = createSearchItem(hexagram);
+            fragment.appendChild(searchItem);
+        });
 
-            const itemContent = document.createElement('div');
-            itemContent.className = 'search-item-content';
+        searchResults.innerHTML = '';
+        searchResults.appendChild(fragment);
+    }
 
-            // 提取标签
-            let tagsHTML = '';
-            if (hexagram.tags && hexagram.tags.length > 0) {
-                tagsHTML = '<div class="search-item-tags">';
-                hexagram.tags.forEach(tag => {
-                    tagsHTML += `<span class="search-item-tag">${tag}</span>`;
-                });
-                tagsHTML += '</div>';
-            }
+    // 创建搜索结果项
+    function createSearchItem(hexagram) {
+        const searchItem = document.createElement('div');
+        searchItem.className = 'search-item';
 
-            itemContent.innerHTML = `
+        // 高亮搜索关键词
+        const highlightedName = highlightText(hexagram.name, currentQuery);
+        const highlightedExplanation = highlightText(hexagram.explanation, currentQuery);
+
+        searchItem.innerHTML = `
+            <div class="search-item-content">
                 <div class="search-item-header">
-                    <div class="search-item-name">${hexagram.name || '未知卦象'}</div>
+                    <div class="search-item-name">${highlightedName}</div>
                     <div class="search-item-unicode">${hexagram.unicode || ''}</div>
                 </div>
-                <div class="search-item-explanation">${hexagram.explanation || ''}</div>
-                ${tagsHTML}
-            `;
+                <div class="search-item-explanation">${highlightedExplanation}</div>
+                <div class="search-item-meta">
+                    <span class="search-item-id">第${hexagram.id}卦</span>
+                    ${hexagram.upperTrigram && hexagram.lowerTrigram ? 
+                        `<span class="search-item-trigrams">${hexagram.upperTrigram}${hexagram.lowerTrigram}</span>` : ''}
+                </div>
+            </div>
+        `;
 
-            searchItem.appendChild(itemContent);
+        searchItem.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
+        });
 
-            searchItem.addEventListener('click', () => {
-                ModalModule.show(hexagram);
+        return searchItem;
+    }
+
+    // 高亮文本
+    function highlightText(text, query) {
+        if (!query || !text) return text;
+
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+
+    // 显示空结果
+    function showEmptyResults() {
+        searchResults.innerHTML = `
+            <div class="search-placeholder">
+                <svg class="placeholder-icon" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <h3>开始搜索卦象</h3>
+                <p>输入卦名、关键词或使用标签来查找相关卦象</p>
+            </div>
+        `;
+    }
+
+    // 显示无结果
+    function showNoResults() {
+        searchResults.innerHTML = `
+            <div class="search-no-results">
+                <svg class="no-results-icon" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <h3>未找到相关卦象</h3>
+                <p>尝试使用其他关键词或检查拼写是否正确</p>
+                <div class="search-suggestions">
+                    <p>建议搜索：</p>
+                    <div class="suggestion-tags">
+                        <span class="suggestion-tag" onclick="document.getElementById('searchInput').value='乾';document.getElementById('searchInput').dispatchEvent(new Event('input'))">乾</span>
+                        <span class="suggestion-tag" onclick="document.getElementById('searchInput').value='坤';document.getElementById('searchInput').dispatchEvent(new Event('input'))">坤</span>
+                        <span class="suggestion-tag" onclick="document.getElementById('searchInput').value='吉';document.getElementById('searchInput').dispatchEvent(new Event('input'))">吉</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 显示加载结果
+    function showLoadingResults() {
+        searchResults.innerHTML = `
+            <div class="search-loading">
+                <div class="loading-spinner">
+                    <div class="taiji-spinner"></div>
+                </div>
+                <p>正在搜索卦象...</p>
+            </div>
+        `;
+    }
+
+    // 显示错误结果
+    function showErrorResults() {
+        searchResults.innerHTML = `
+            <div class="search-error">
+                <svg class="error-icon" viewBox="0 0 24 24">
+                    <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"></path>
+                </svg>
+                <h3>搜索出现错误</h3>
+                <p>请稍后重试或联系技术支持</p>
+            </div>
+        `;
+    }
+
+    // 更新统计信息
+    function updateStats(count) {
+        if (searchStats) {
+            if (count > 0) {
+                searchStats.style.display = 'block';
+                if (resultCount) {
+                    resultCount.textContent = count;
+                }
+            } else {
+                hideStats();
+            }
+        }
+    }
+
+    // 隐藏统计信息
+    function hideStats() {
+        if (searchStats) {
+            searchStats.style.display = 'none';
+        }
+    }
+
+    // 更新清除按钮
+    function updateClearButton() {
+        if (searchClear) {
+            searchClear.style.display = currentQuery ? 'flex' : 'none';
+        }
+    }
+
+    // 清除搜索
+    function clearSearch() {
+        currentQuery = '';
+        searchInput.value = '';
+        categoryFilter.value = '';
+        currentCategory = '';
+        updateClearButton();
+        showEmptyResults();
+        hideStats();
+    }
+
+    // 添加到搜索历史
+    function addToSearchHistory(query) {
+        if (!query || searchHistory.includes(query)) return;
+
+        searchHistory.unshift(query);
+        if (searchHistory.length > 10) {
+            searchHistory = searchHistory.slice(0, 10);
+        }
+
+        saveSearchHistory();
+    }
+
+    // 加载搜索历史
+    function loadSearchHistory() {
+        searchHistory = YizhiApp.storage.getItem('search_history', []);
+    }
+
+    // 保存搜索历史
+    function saveSearchHistory() {
+        YizhiApp.storage.setItem('search_history', searchHistory);
+    }
+
+    // 初始化精选卦象
+    function initFeaturedHexagrams() {
+        if (!featuredHexagrams) return;
+
+        try {
+            const hexagramDataService = YizhiApp.getModule('hexagramData');
+            if (!hexagramDataService?.isInitialized) return;
+
+            const featuredIds = [1, 2, 11, 12, 24, 44]; // 经典卦象
+            const fragment = document.createDocumentFragment();
+
+            featuredIds.forEach(id => {
+                const hexagram = hexagramDataService.getHexagramById(id);
+                if (hexagram) {
+                    const featuredItem = createFeaturedHexagramItem(hexagram);
+                    fragment.appendChild(featuredItem);
+                }
             });
 
-            searchResults.appendChild(searchItem);
+            featuredHexagrams.innerHTML = '';
+            featuredHexagrams.appendChild(fragment);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Init Featured Hexagrams');
+        }
+    }
+
+    // 创建精选卦象项
+    function createFeaturedHexagramItem(hexagram) {
+        const item = document.createElement('div');
+        item.className = 'featured-hexagram-item';
+
+        item.innerHTML = `
+            <div class="featured-symbol">${hexagram.unicode || ''}</div>
+            <div class="featured-info">
+                <div class="featured-name">${hexagram.name}</div>
+                <div class="featured-explanation">${hexagram.explanation}</div>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            YizhiApp.getModule('modal')?.show(hexagram);
         });
+
+        return item;
     }
 
     return {
         init,
         onActivate,
-        search: handleSearch
+        search: handleSearch,
+        clearSearch
     };
 })();
 
@@ -2421,144 +3442,384 @@ const SearchModule = (function() {
 const ModalModule = (function() {
     // 私有变量
     const modal = document.getElementById('hexagramModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
     const closeModal = document.getElementById('closeModal');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+    const modalShareBtn = document.getElementById('modalShareBtn');
     const modalTitle = document.getElementById('modalTitle');
     const modalContent = document.getElementById('modalContent');
 
+    let currentHexagram = null;
+    let isVisible = false;
+
     // 初始化
     function init() {
-        // 添加事件监听器
-        closeModal.addEventListener('click', hide);
+        try {
+            bindEvents();
+            initKeyboardEvents();
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Modal Module Init');
+        }
+    }
 
-        // 点击模态框背景关闭
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                hide();
-            }
+    // 绑定事件
+    function bindEvents() {
+        closeModal?.addEventListener('click', hide);
+        modalBackdrop?.addEventListener('click', hide);
+        modalSaveBtn?.addEventListener('click', saveCurrentHexagram);
+        modalShareBtn?.addEventListener('click', shareCurrentHexagram);
+
+        // 点击模态框内容区域不关闭
+        modal?.querySelector('.modal-content')?.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
+    }
 
-        // 添加键盘事件
+    // 初始化键盘事件
+    function initKeyboardEvents() {
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.style.display === 'flex') {
-                hide();
+            if (!isVisible) return;
+
+            switch (e.key) {
+                case 'Escape':
+                    hide();
+                    break;
+                case 's':
+                case 'S':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        saveCurrentHexagram();
+                    }
+                    break;
+                default:
+                    break;
             }
         });
     }
 
     // 显示模态框
     function show(hexagram) {
-        if (!hexagram) return;
-
-        const name = hexagram.name || '未知卦象';
-        const explanation = hexagram.explanation || '';
-
-        modalTitle.textContent = `${name} · ${explanation}`;
-
-        // 处理爻辞
-        let linesHTML = '';
-        if (hexagram.lines && hexagram.lines.length > 0) {
-            hexagram.lines.forEach(line => {
-                // 确保position和content字段存在
-                const position = line.position || 0;
-                const content = line.content || '暂无爻辞';
-
-                linesHTML += `
-                    <div class="line-reading">
-                        <div class="line-position">第${position}爻</div>
-                        <p>${content}</p>
-                    </div>
-                `;
-            });
-        } else {
-            linesHTML = '<p>暂无爻辞数据</p>';
+        if (!hexagram || !modal) {
+            console.warn('Modal: Invalid hexagram or modal element not found');
+            return;
         }
 
-        // 获取上下卦
-        let trigramInfo = '';
-        if (hexagram.upperTrigram && hexagram.lowerTrigram) {
-            const upperBagua = HexagramDataService.getBagua(hexagram.upperTrigram);
-            const lowerBagua = HexagramDataService.getBagua(hexagram.lowerTrigram);
+        try {
+            currentHexagram = hexagram;
 
-            if (upperBagua && lowerBagua) {
-                trigramInfo = `
-                    <div class="mb-lg">
-                        <div>上卦: ${hexagram.upperTrigram} ${upperBagua.symbol} (${upperBagua.nature})</div>
-                        <div>下卦: ${hexagram.lowerTrigram} ${lowerBagua.symbol} (${lowerBagua.nature})</div>
-                    </div>
-                `;
+            // 显示加载状态
+            showLoading();
+
+            // 显示模态框
+            modal.style.display = 'flex';
+            isVisible = true;
+
+            // 设置标题
+            const title = `${hexagram.name || '未知卦象'} · ${hexagram.explanation || ''}`;
+            if (modalTitle) {
+                modalTitle.textContent = title;
             }
+
+            // 异步加载内容
+            setTimeout(() => {
+                loadModalContent(hexagram);
+            }, 100);
+
+            // 焦点管理
+            closeModal?.focus();
+
+            // 禁用背景滚动
+            document.body.style.overflow = 'hidden';
+
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Show Modal');
         }
-
-        // 获取相关卦象
-        let relationsHTML = '';
-        if (hexagram.id) {
-            const related = HexagramDataService.getRelatedHexagrams(hexagram.id);
-
-            if (Object.keys(related).length > 0) {
-                const relationTypes = {
-                    opposite: '对宫卦',
-                    inverse: '综卦',
-                    mutual: '互卦',
-                    nuclear: '互卦'
-                };
-
-                relationsHTML = '<div class="relation-graph mt-lg"><h3 class="relation-title">相关卦象</h3><div class="relation-items">';
-
-                for (const [type, relHexagram] of Object.entries(related)) {
-                    if (!relHexagram) continue;
-
-                    relationsHTML += `
-                        <div class="relation-item">
-                            <div class="relation-symbol">${relHexagram.unicode || ''}</div>
-                            <div>
-                                <div class="relation-name">${relHexagram.name || '未知卦象'}</div>
-                                <div class="relation-type">${relationTypes[type] || type}</div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                relationsHTML += '</div></div>';
-            }
-        }
-
-        modalContent.innerHTML = `
-            <div class="text-center mb-xl">
-                <div class="hexagram-unicode" style="display: inline-block; margin: 0 auto;">
-                    ${hexagram.unicode || ''}
-                </div>
-            </div>
-
-            ${trigramInfo}
-
-            <h3 class="mb-lg">卦象概述</h3>
-            <p class="mb-xl">${hexagram.overview || '暂无数据'}</p>
-
-            <h3 class="mb-lg">详细解析</h3>
-            <p class="mb-xl">${hexagram.detail || '暂无数据'}</p>
-
-            <h3 class="mb-lg">爻辞解读</h3>
-            ${linesHTML}
-
-            ${relationsHTML}
-        `;
-
-        // 显示模态框
-        modal.style.display = 'flex';
-
-        // 焦点管理
-        closeModal.focus();
     }
 
     // 隐藏模态框
     function hide() {
-        modal.style.display = 'none';
+        if (!modal || !isVisible) return;
+
+        try {
+            modal.style.display = 'none';
+            isVisible = false;
+            currentHexagram = null;
+
+            // 恢复背景滚动
+            document.body.style.overflow = '';
+
+            // 清空内容
+            if (modalContent) {
+                modalContent.innerHTML = '';
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Hide Modal');
+        }
+    }
+
+    // 显示加载状态
+    function showLoading() {
+        if (!modalContent) return;
+
+        modalContent.innerHTML = `
+            <div class="modal-loading">
+                <div class="loading-spinner">
+                    <div class="taiji-spinner"></div>
+                </div>
+                <p>加载卦象信息中...</p>
+            </div>
+        `;
+    }
+
+    // 加载模态框内容
+    function loadModalContent(hexagram) {
+        if (!modalContent) return;
+
+        try {
+            // 处理爻辞
+            let linesHTML = '';
+            if (hexagram.lines && hexagram.lines.length > 0) {
+                hexagram.lines.forEach(line => {
+                    const position = line.position || 0;
+                    const content = line.content || '暂无爻辞';
+
+                    linesHTML += `
+                        <div class="modal-line-reading">
+                            <div class="modal-line-position">第${position}爻</div>
+                            <p class="modal-line-content">${content}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                linesHTML = '<p class="modal-no-data">暂无爻辞数据</p>';
+            }
+
+            // 获取上下卦信息
+            let trigramInfo = '';
+            if (hexagram.upperTrigram && hexagram.lowerTrigram) {
+                const hexagramDataService = YizhiApp.getModule('hexagramData');
+                if (hexagramDataService?.isInitialized) {
+                    const upperBagua = hexagramDataService.getBagua(hexagram.upperTrigram);
+                    const lowerBagua = hexagramDataService.getBagua(hexagram.lowerTrigram);
+
+                    if (upperBagua && lowerBagua) {
+                        trigramInfo = `
+                            <div class="modal-trigram-info">
+                                <div class="trigram-item">
+                                    <span class="trigram-symbol">${upperBagua.symbol}</span>
+                                    <span class="trigram-name">上卦: ${hexagram.upperTrigram}</span>
+                                    <span class="trigram-nature">${upperBagua.nature}</span>
+                                </div>
+                                <div class="trigram-item">
+                                    <span class="trigram-symbol">${lowerBagua.symbol}</span>
+                                    <span class="trigram-name">下卦: ${hexagram.lowerTrigram}</span>
+                                    <span class="trigram-nature">${lowerBagua.nature}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            // 获取相关卦象
+            let relationsHTML = '';
+            if (hexagram.id && YizhiApp.getModule('hexagramData')?.isInitialized) {
+                const related = YizhiApp.getModule('hexagramData').getRelatedHexagrams(hexagram.id);
+
+                if (Object.keys(related).length > 0) {
+                    const relationTypes = {
+                        opposite: '对宫卦',
+                        inverse: '综卦',
+                        mutual: '互卦'
+                    };
+
+                    relationsHTML = '<div class="modal-relations"><h4 class="modal-section-title">相关卦象</h4><div class="modal-relation-items">';
+
+                    for (const [type, relHexagram] of Object.entries(related)) {
+                        if (!relHexagram) continue;
+
+                        relationsHTML += `
+                            <div class="modal-relation-item" data-hexagram-id="${relHexagram.id}">
+                                <div class="relation-symbol">${relHexagram.unicode || ''}</div>
+                                <div class="relation-info">
+                                    <div class="relation-name">${relHexagram.name || '未知卦象'}</div>
+                                    <div class="relation-type">${relationTypes[type] || type}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    relationsHTML += '</div></div>';
+                }
+            }
+
+            // 构建完整内容
+            modalContent.innerHTML = `
+                <div class="modal-hexagram-header">
+                    <div class="modal-hexagram-unicode">${hexagram.unicode || ''}</div>
+                    <div class="modal-hexagram-info">
+                        <h2 class="modal-hexagram-name">${hexagram.name || '未知卦象'}</h2>
+                        <p class="modal-hexagram-explanation">${hexagram.explanation || ''}</p>
+                    </div>
+                </div>
+
+                ${trigramInfo}
+
+                <div class="modal-section">
+                    <h3 class="modal-section-title">卦象概述</h3>
+                    <p class="modal-section-content">${hexagram.overview || '暂无数据'}</p>
+                </div>
+
+                <div class="modal-section">
+                    <h3 class="modal-section-title">详细解析</h3>
+                    <p class="modal-section-content">${hexagram.detail || '暂无数据'}</p>
+                </div>
+
+                <div class="modal-section">
+                    <h3 class="modal-section-title">爻辞解读</h3>
+                    <div class="modal-lines-content">
+                        ${linesHTML}
+                    </div>
+                </div>
+
+                ${relationsHTML}
+            `;
+
+            // 绑定相关卦象点击事件
+            bindRelationEvents();
+
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Load Modal Content');
+            showErrorContent();
+        }
+    }
+
+    // 绑定相关卦象事件
+    function bindRelationEvents() {
+        const relationItems = modalContent?.querySelectorAll('.modal-relation-item');
+        relationItems?.forEach(item => {
+            item.addEventListener('click', () => {
+                const hexagramId = parseInt(item.getAttribute('data-hexagram-id'));
+                if (hexagramId) {
+                    const hexagramDataService = YizhiApp.getModule('hexagramData');
+                    const relatedHexagram = hexagramDataService?.getHexagramById(hexagramId);
+                    if (relatedHexagram) {
+                        show(relatedHexagram);
+                    }
+                }
+            });
+        });
+    }
+
+    // 显示错误内容
+    function showErrorContent() {
+        if (!modalContent) return;
+
+        modalContent.innerHTML = `
+            <div class="modal-error">
+                <svg class="error-icon" viewBox="0 0 24 24">
+                    <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"></path>
+                </svg>
+                <h3>加载失败</h3>
+                <p>无法加载卦象信息，请稍后重试</p>
+                <button class="btn btn-primary btn-sm" onclick="location.reload()">刷新页面</button>
+            </div>
+        `;
+    }
+
+    // 保存当前卦象
+    function saveCurrentHexagram() {
+        if (!currentHexagram) return;
+
+        try {
+            // 创建历史记录项
+            const historyItem = {
+                id: YizhiApp.utils.generateId(),
+                date: YizhiApp.utils.formatDate(new Date()),
+                hexagram: currentHexagram,
+                lines: [], // 模态框中的卦象可能没有具体的爻线信息
+                notes: '通过查询保存',
+                source: 'modal'
+            };
+
+            YizhiApp.getModule('history')?.addRecord(historyItem);
+            YizhiApp.getModule('notification')?.show('success', '保存成功',
+                `卦象「${currentHexagram.name}」已保存到历史记录。`);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Save Current Hexagram');
+        }
+    }
+
+    // 分享当前卦象
+    function shareCurrentHexagram() {
+        if (!currentHexagram) return;
+
+        try {
+            const shareText = `${currentHexagram.name} - ${currentHexagram.explanation}\n\n${currentHexagram.overview || ''}`;
+
+            if (navigator.share) {
+                // 使用原生分享API
+                navigator.share({
+                    title: `易之 - ${currentHexagram.name}`,
+                    text: shareText,
+                    url: window.location.href
+                }).then(() => {
+                    YizhiApp.getModule('notification')?.show('success', '分享成功', '卦象信息已分享。');
+                }).catch((error) => {
+                    if (error.name !== 'AbortError') {
+                        fallbackShare(shareText);
+                    }
+                });
+            } else {
+                // 回退到复制到剪贴板
+                fallbackShare(shareText);
+            }
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Share Current Hexagram');
+        }
+    }
+
+    // 回退分享方法
+    function fallbackShare(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                YizhiApp.getModule('notification')?.show('success', '复制成功', '卦象信息已复制到剪贴板。');
+            }).catch(() => {
+                showShareModal(text);
+            });
+        } else {
+            showShareModal(text);
+        }
+    }
+
+    // 显示分享模态框
+    function showShareModal(text) {
+        const shareModal = document.createElement('div');
+        shareModal.className = 'share-modal';
+        shareModal.innerHTML = `
+            <div class="share-content">
+                <h4>分享卦象</h4>
+                <textarea readonly class="share-text">${text}</textarea>
+                <div class="share-actions">
+                    <button class="btn btn-outline btn-sm" onclick="this.closest('.share-modal').remove()">关闭</button>
+                    <button class="btn btn-primary btn-sm" onclick="this.parentElement.previousElementSibling.select();document.execCommand('copy');this.textContent='已复制';setTimeout(()=>this.textContent='复制文本',1000)">复制文本</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(shareModal);
+
+        setTimeout(() => {
+            shareModal.remove();
+        }, 10000);
     }
 
     return {
         init,
         show,
-        hide
+        hide,
+        get isVisible() { return isVisible; },
+        get currentHexagram() { return currentHexagram; }
     };
 })();
 
@@ -2567,7 +3828,7 @@ const ModalModule = (function() {
  */
 const HelpModule = (function() {
     // 私有变量
-    const helpTrigger = document.getElementById('helpTrigger');
+    const helpButton = document.getElementById('helpButton');
 
     // 帮助内容
     const helpContent = {
@@ -2575,29 +3836,46 @@ const HelpModule = (function() {
         sections: [
             {
                 title: '基本操作',
+                icon: '🎯',
                 items: [
                     '点击"投掷铜钱"按钮，依次形成六爻',
                     '完成六爻后，可以点击"变卦显示"查看变卦',
                     '点击"重新起卦"可以清空当前卦象，重新开始',
-                    '点击"保存结果"将当前卦象保存到历史记录中'
+                    '点击"保存结果"将当前卦象保存到历史记录中',
+                    '使用"导出结果"功能可以将占卜结果保存为文件'
                 ]
             },
             {
                 title: '卦象解读',
+                icon: '📖',
                 items: [
                     '卦象形成后，可以查看详细解读',
                     '爻辞解读标签页显示各爻的含义',
                     '变爻特别重要，解读时需重点关注',
-                    '相关卦象可以帮助理解当前卦象的关联意义'
+                    '相关卦象可以帮助理解当前卦象的关联意义',
+                    '点击卦象符号可以查看更详细的信息'
                 ]
             },
             {
                 title: '其他功能',
+                icon: '⚙️',
                 items: [
                     '历史记录中可以查看过去的占卜结果',
                     '卦象分析工具可以模拟不同八卦的组合',
                     '八卦知识页面提供易经基础理论',
-                    '卦象查询功能可以直接搜索特定卦象'
+                    '卦象查询功能可以直接搜索特定卦象',
+                    '支持键盘快捷键：Alt+数字切换功能区，Ctrl+K快速搜索'
+                ]
+            },
+            {
+                title: '占卜原理',
+                icon: '🔮',
+                items: [
+                    '使用三枚铜钱投掷，正面为阳(3)，反面为阴(2)',
+                    '三枚铜钱的组合决定每一爻：6为老阴(变阳)，7为少阳，8为少阴，9为老阳(变阴)',
+                    '老阴和老阳为变爻，代表能量转化',
+                    '本卦显示当前状态，变卦指示发展趋势',
+                    '解卦时要综合考虑卦象、爻辞和变化'
                 ]
             }
         ]
@@ -2605,9 +3883,17 @@ const HelpModule = (function() {
 
     // 初始化
     function init() {
-        // 添加事件监听器
-        helpTrigger.addEventListener('click', showHelp);
-        helpTrigger.addEventListener('keydown', (e) => {
+        try {
+            bindEvents();
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Help Module Init');
+        }
+    }
+
+    // 绑定事件
+    function bindEvents() {
+        helpButton?.addEventListener('click', showHelp);
+        helpButton?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 showHelp();
@@ -2617,40 +3903,127 @@ const HelpModule = (function() {
 
     // 显示帮助
     function showHelp() {
-        // 创建帮助内容HTML
-        let sectionsHTML = '';
+        try {
+            // 创建帮助内容HTML
+            let sectionsHTML = '';
 
-        helpContent.sections.forEach(section => {
-            let itemsHTML = '';
-            section.items.forEach(item => {
-                itemsHTML += `<li>${item}</li>`;
+            helpContent.sections.forEach(section => {
+                let itemsHTML = '';
+                section.items.forEach(item => {
+                    itemsHTML += `<li class="help-item">${item}</li>`;
+                });
+
+                sectionsHTML += `
+                    <div class="help-section">
+                        <h4 class="help-section-title">
+                            <span class="help-section-icon">${section.icon}</span>
+                            ${section.title}
+                        </h4>
+                        <ul class="help-item-list">${itemsHTML}</ul>
+                    </div>
+                `;
             });
 
-            sectionsHTML += `
-                <div class="mb-lg">
-                    <h3 class="mb-md">${section.title}</h3>
-                    <ul>${itemsHTML}</ul>
+            // 添加快捷键信息
+            const shortcutsHTML = `
+                <div class="help-section">
+                    <h4 class="help-section-title">
+                        <span class="help-section-icon">⌨️</span>
+                        键盘快捷键
+                    </h4>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item">
+                            <kbd>Alt + 1-5</kbd>
+                            <span>切换功能区</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl + K</kbd>
+                            <span>快速搜索</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Esc</kbd>
+                            <span>关闭弹窗</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl + S</kbd>
+                            <span>保存当前</span>
+                        </div>
+                    </div>
                 </div>
             `;
-        });
 
-        // 使用模态框显示帮助内容
-        const modalContent = {
-            name: '使用指南',
-            unicode: '?',
-            explanation: '易之 V6.2 使用帮助',
-            overview: '',
-            detail: `
+            // 创建完整的帮助内容
+            const fullContent = `
                 <div class="help-content">
-                    ${sectionsHTML}
+                    <div class="help-intro">
+                        <h3 class="help-title">${helpContent.title}</h3>
+                        <p class="help-description">
+                            易之是一个现代化的易经演算系统，融合传统智慧与现代技术，
+                            为您提供准确、便捷的占卜体验。以下是详细的使用指南。
+                        </p>
+                    </div>
+                    
+                    <div class="help-sections">
+                        ${sectionsHTML}
+                        ${shortcutsHTML}
+                    </div>
+                    
+                    <div class="help-footer">
+                        <p class="help-version">版本：${YizhiApp.config.version}</p>
+                        <p class="help-contact">
+                            如有问题或建议，欢迎联系我们。
+                        </p>
+                    </div>
                 </div>
-            `
-        };
+            `;
 
-        ModalModule.show(modalContent);
+            // 使用模态框显示帮助内容
+            const modalContent = {
+                name: '使用指南',
+                unicode: '?',
+                explanation: '易之 V6.2 使用帮助',
+                overview: '',
+                detail: fullContent
+            };
+
+            YizhiApp.getModule('modal')?.show(modalContent);
+
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Show Help');
+        }
+    }
+
+    // 显示快速提示
+    function showQuickTip(message, duration = 3000) {
+        try {
+            YizhiApp.getModule('notification')?.show('info', '使用提示', message, duration);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Show Quick Tip');
+        }
+    }
+
+    // 显示功能介绍
+    function showFeatureIntro(feature) {
+        try {
+            const introMessages = {
+                divination: '在这里可以进行传统的三钱占卜，通过投掷铜钱形成卦象，获得人生指导。',
+                analyzer: '卦象分析工具让您可以自由组合八卦，探索不同卦象的含义和关系。',
+                history: '历史记录保存您的所有占卜结果，方便回顾和分析人生轨迹。',
+                knowledge: '八卦知识库提供丰富的易经理论知识，帮助您更好地理解卦象。',
+                search: '卦象查询功能让您可以快速搜索特定卦象，获取详细信息。'
+            };
+
+            const message = introMessages[feature] || '这是一个强大的功能模块。';
+            showQuickTip(message, 5000);
+        } catch (error) {
+            YizhiApp.errors.handle(error, 'Show Feature Intro');
+        }
     }
 
     return {
-        init
+        init,
+        showHelp,
+        showQuickTip,
+        showFeatureIntro
     };
 })();

@@ -4,14 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="易之 - 现代易经演算系统，通过三枚铜钱演算卦象，探索天地玄机">
+    <meta name="keywords" content="易经,占卜,卦象,八卦,六十四卦,铜钱占卜">
+    <meta name="author" content="易之开发团队">
     <meta name="theme-color" content="#c0392b">
-    <title>易之 V6.2 | 高级易经演算系统</title>
+
+    <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" as="style">
+
+    <!-- PWA 支持 -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <title>易之 V7.0 | 高级易经演算系统</title>
+
+    <!-- 样式文件 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- 初始化脚本 -->
+    <script>
+        // 主题初始化（防止闪烁）
+        (function() {
+            const savedTheme = sessionStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 <body>
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="taiji-spinner"></div>
+            <p class="loading-text">正在加载易经数据...</p>
+        </div>
+    </div>
+
     <div class="container">
         <!-- 应用头部 -->
         <header class="app-header">
@@ -24,94 +55,165 @@
                     <p class="description">高级易经演算系统</p>
                 </div>
             </div>
-            <div class="theme-toggle">
-                <span class="toggle-label">阴阳转换</span>
-                <div class="taiji-toggle" id="themeToggle" role="button" tabindex="0" aria-label="切换深浅色主题"></div>
+            <div class="header-controls">
+                <div class="theme-toggle">
+                    <span class="toggle-label">阴阳转换</span>
+                    <div class="taiji-toggle" id="themeToggle" role="button" tabindex="0" aria-label="切换深浅色主题"></div>
+                </div>
+                <button class="help-button" id="helpButton" aria-label="查看帮助">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"></path>
+                    </svg>
+                </button>
             </div>
         </header>
 
         <!-- 导航菜单 -->
         <nav class="nav-bar" aria-label="主导航">
             <div class="nav-menu" role="tablist">
-                <button class="nav-button active" data-section="divination" role="tab" aria-selected="true" aria-controls="divination">演算占卜</button>
-                <button class="nav-button" data-section="hexagram-analyzer" role="tab" aria-selected="false" aria-controls="hexagram-analyzer">卦象分析</button>
-                <button class="nav-button" data-section="history" role="tab" aria-selected="false" aria-controls="history">历史记录</button>
-                <button class="nav-button" data-section="knowledge" role="tab" aria-selected="false" aria-controls="knowledge">八卦知识</button>
-                <button class="nav-button" data-section="search" role="tab" aria-selected="false" aria-controls="search">卦象查询</button>
+                <button class="nav-button active" data-section="divination" role="tab" aria-selected="true" aria-controls="divination">
+                    <svg class="icon nav-icon" viewBox="0 0 24 24">
+                        <path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M15,13H9v-2h6V13z"></path>
+                    </svg>
+                    演算占卜
+                </button>
+                <button class="nav-button" data-section="hexagram-analyzer" role="tab" aria-selected="false" aria-controls="hexagram-analyzer">
+                    <svg class="icon nav-icon" viewBox="0 0 24 24">
+                        <path d="M9,11H7v2h2V11z M13,7h-2v2h2V7z M13,11h-2v2h2V11z M17,7h-2v2h2V7z M17,11h-2v2h2V11z"></path>
+                    </svg>
+                    卦象分析
+                </button>
+                <button class="nav-button" data-section="history" role="tab" aria-selected="false" aria-controls="history">
+                    <svg class="icon nav-icon" viewBox="0 0 24 24">
+                        <path d="M13,3C9.1,3,6,6.1,6,10h1.6L5,13.5L2.4,10H4c0-5,4-9,9-9s9,4,9,9s-4,9-9,9c-2.4,0-4.6-0.9-6.3-2.6L5.3,17.8C7.5,20.1,10.1,21,13,21c5.5,0,10-4.5,10-10S18.5,3,13,3z"></path>
+                    </svg>
+                    历史记录
+                </button>
+                <button class="nav-button" data-section="knowledge" role="tab" aria-selected="false" aria-controls="knowledge">
+                    <svg class="icon nav-icon" viewBox="0 0 24 24">
+                        <path d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z"></path>
+                    </svg>
+                    八卦知识
+                </button>
+                <button class="nav-button" data-section="search" role="tab" aria-selected="false" aria-controls="search">
+                    <svg class="icon nav-icon" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                    </svg>
+                    卦象查询
+                </button>
             </div>
         </nav>
 
         <!-- 占卜部分 -->
         <section id="divination" class="content-section active" role="tabpanel" aria-labelledby="divination-btn">
             <!-- 步骤指引 -->
-            <div class="steps">
-                <div class="step active" id="step1">
-                    <div class="step-circle">1</div>
-                    <div class="step-label">投掷铜钱</div>
-                </div>
-                <div class="step" id="step2">
-                    <div class="step-circle">2</div>
-                    <div class="step-label">形成卦象</div>
-                </div>
-                <div class="step" id="step3">
-                    <div class="step-circle">3</div>
-                    <div class="step-label">变卦演变</div>
-                </div>
-                <div class="step" id="step4">
-                    <div class="step-circle">4</div>
-                    <div class="step-label">解读结果</div>
+            <div class="steps-container">
+                <div class="steps">
+                    <div class="step active" id="step1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">投掷铜钱</div>
+                        <div class="step-description">连续六次投掷三枚铜钱</div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">形成卦象</div>
+                        <div class="step-description">观察卦象结构和变爻</div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">变卦演变</div>
+                        <div class="step-description">查看变爻后的新卦象</div>
+                    </div>
+                    <div class="step" id="step4">
+                        <div class="step-circle">4</div>
+                        <div class="step-label">解读结果</div>
+                        <div class="step-description">深入理解卦象含义</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="controls">
-                <button class="btn btn-primary" id="throwCoinBtn">
-                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M15,13H9v-2h6V13z"></path>
-                    </svg>
-                    <span>投掷铜钱</span>
-                </button>
-                <button class="btn btn-secondary" id="changeHexagramBtn" disabled>
-                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="M19,8l-4,4h3c0,3.31-2.69,6-6,6c-1.01,0-1.97-0.25-2.8-0.7l-1.46,1.46C8.97,19.54,10.43,20,12,20c4.42,0,8-3.58,8-8h3 L19,8z M6,12c0-3.31,2.69-6,6-6c1.01,0,1.97,0.25,2.8,0.7l1.46-1.46C15.03,4.46,13.57,4,12,4c-4.42,0-8,3.58-8,8H1l4,4l4-4H6z"></path>
-                    </svg>
-                    <span>变卦显示</span>
-                </button>
-                <button class="btn" id="resetBtn">
-                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08 c-0.82,2.33-3.04,4-5.65,4c-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path>
-                    </svg>
-                    <span>重新起卦</span>
-                </button>
-                <button class="btn" id="saveBtn" disabled>
-                    <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="M17,3H5C3.89,3,3,3.9,3,5v14c0,1.1,0.89,2,2,2h14c1.1,0,2-0.9,2-2V7L17,3z M12,19c-1.66,0-3-1.34-3-3s1.34-3,3-3 s3,1.34,3,3S13.66,19,12,19z M15,9H5V5h10V9z"></path>
-                    </svg>
-                    <span>保存结果</span>
-                </button>
+            <!-- 操作控制区 -->
+            <div class="divination-controls">
+                <div class="primary-controls">
+                    <button class="btn btn-primary btn-large" id="throwCoinBtn">
+                        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M15,13H9v-2h6V13z"></path>
+                        </svg>
+                        <span>投掷铜钱</span>
+                        <small class="btn-subtitle" id="throwSubtitle">第1爻</small>
+                    </button>
+                </div>
+
+                <div class="secondary-controls">
+                    <button class="btn btn-secondary" id="changeHexagramBtn" disabled>
+                        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M19,8l-4,4h3c0,3.31-2.69,6-6,6c-1.01,0-1.97-0.25-2.8-0.7l-1.46,1.46C8.97,19.54,10.43,20,12,20c4.42,0,8-3.58,8-8h3 L19,8z M6,12c0-3.31,2.69-6,6-6c1.01,0,1.97,0.25,2.8,0.7l1.46-1.46C15.03,4.46,13.57,4,12,4c-4.42,0-8,3.58-8,8H1l4,4l4-4H6z"></path>
+                        </svg>
+                        <span>变卦显示</span>
+                    </button>
+                    <button class="btn" id="resetBtn">
+                        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08 c-0.82,2.33-3.04,4-5.65,4c-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path>
+                        </svg>
+                        <span>重新起卦</span>
+                    </button>
+                    <button class="btn btn-action" id="saveBtn" disabled>
+                        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M17,3H5C3.89,3,3,3.9,3,5v14c0,1.1,0.89,2,2,2h14c1.1,0,2-0.9,2-2V7L17,3z M12,19c-1.66,0-3-1.34-3-3s1.34-3,3-3 s3,1.34,3,3S13.66,19,12,19z M15,9H5V5h10V9z"></path>
+                        </svg>
+                        <span>保存结果</span>
+                    </button>
+                    <button class="btn btn-outline" id="exportBtn" disabled>
+                        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+                            <path d="M14,2H6C4.9,2,4,2.9,4,4v16c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V8L14,2z M18,20H6V4h7v5h5V20z"></path>
+                        </svg>
+                        <span>导出结果</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="progress-indicator" id="progressIndicator">
-                <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+            <!-- 进度指示器 -->
+            <div class="progress-section">
+                <div class="progress-info">
+                    <span class="progress-label">占卜进度</span>
+                    <span class="progress-count" id="progressCount">0/6</span>
+                </div>
+                <div class="progress-indicator" id="progressIndicator">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
             </div>
 
-            <div class="coins-area" id="coinsDisplay" aria-live="polite"></div>
+            <!-- 铜钱投掷区域 -->
+            <div class="coins-section">
+                <div class="coins-area" id="coinsDisplay" aria-live="polite"></div>
+                <div class="coins-result" id="coinsResult"></div>
+            </div>
 
             <div class="grid-layout">
                 <!-- 左侧卦象显示 -->
                 <div class="col-span-4">
-                    <div class="card">
+                    <div class="card hexagram-card">
                         <div class="card-header">
                             <h2 class="card-title">卦象图示</h2>
                             <p class="card-subtitle">从下至上依次形成六爻</p>
                         </div>
-                        <div class="hexagram-container" id="hexagramContainer" aria-live="polite"></div>
+                        <div class="card-body">
+                            <div class="hexagram-container" id="hexagramContainer" aria-live="polite">
+                                <div class="hexagram-placeholder">
+                                    <div class="placeholder-text">请开始投掷铜钱形成卦象</div>
+                                </div>
+                            </div>
+                            <div class="hexagram-info-panel" id="hexagramInfoPanel">
+                                <div class="changing-lines-indicator" id="changingLinesIndicator"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 右侧解读显示 -->
                 <div class="col-span-8">
                     <div class="card result-card">
-                        <div class="hexagram-result">
+                        <div class="hexagram-result" id="hexagramResultSection">
                             <div class="hexagram-info">
                                 <div class="hexagram-name" id="hexagramName">待演算</div>
                                 <div class="hexagram-explanation" id="hexagramExplanation"></div>
@@ -125,32 +227,70 @@
 
                         <div class="tabs">
                             <div class="tab-nav" role="tablist">
-                                <button class="tab-button active" data-tab="overview" role="tab" aria-selected="true" aria-controls="overview">卦象概述</button>
-                                <button class="tab-button" data-tab="detail" role="tab" aria-selected="false" aria-controls="detail">详细解析</button>
-                                <button class="tab-button" data-tab="lines" role="tab" aria-selected="false" aria-controls="lines">爻辞解读</button>
-                                <button class="tab-button" data-tab="relations" role="tab" aria-selected="false" aria-controls="relations">卦象关系</button>
+                                <button class="tab-button active" data-tab="overview" role="tab" aria-selected="true" aria-controls="overview">
+                                    <svg class="icon" viewBox="0 0 24 24">
+                                        <path d="M12,2L3,9L12,15.5L21,9L12,2Z"></path>
+                                    </svg>
+                                    卦象概述
+                                </button>
+                                <button class="tab-button" data-tab="detail" role="tab" aria-selected="false" aria-controls="detail">
+                                    <svg class="icon" viewBox="0 0 24 24">
+                                        <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"></path>
+                                    </svg>
+                                    详细解析
+                                </button>
+                                <button class="tab-button" data-tab="lines" role="tab" aria-selected="false" aria-controls="lines">
+                                    <svg class="icon" viewBox="0 0 24 24">
+                                        <path d="M3,3H21V5H3V3M3,7H21V9H3V7M3,11H21V13H3V11M3,15H21V17H3V15M3,19H21V21H3V19Z"></path>
+                                    </svg>
+                                    爻辞解读
+                                </button>
+                                <button class="tab-button" data-tab="relations" role="tab" aria-selected="false" aria-controls="relations">
+                                    <svg class="icon" viewBox="0 0 24 24">
+                                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M17,18H15A1,1 0 0,1 14,17V16H10V17A1,1 0 0,1 9,18H7A1,1 0 0,1 6,17V9A1,1 0 0,1 7,8H17A1,1 0 0,1 18,9V17A1,1 0 0,1 17,18Z"></path>
+                                    </svg>
+                                    卦象关系
+                                </button>
                             </div>
                             <div class="tab-content active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
                                 <div class="tab-panel" id="overviewContent">
-                                    请完成卦象演算以查看详细解读。
+                                    <div class="empty-state">
+                                        <svg class="empty-icon" viewBox="0 0 24 24">
+                                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,13H17V11H7"></path>
+                                        </svg>
+                                        <p>请完成卦象演算以查看详细解读</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="tab-content" id="detail" role="tabpanel" aria-labelledby="detail-tab">
                                 <div class="tab-panel" id="detailContent">
-                                    请完成卦象演算以查看详细解读。
+                                    <div class="empty-state">
+                                        <svg class="empty-icon" viewBox="0 0 24 24">
+                                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,13H17V11H7"></path>
+                                        </svg>
+                                        <p>请完成卦象演算以查看详细解读</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="tab-content" id="lines" role="tabpanel" aria-labelledby="lines-tab">
                                 <div class="tab-panel" id="linesContent">
-                                    请完成卦象演算以查看详细解读。
+                                    <div class="empty-state">
+                                        <svg class="empty-icon" viewBox="0 0 24 24">
+                                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,13H17V11H7"></path>
+                                        </svg>
+                                        <p>请完成卦象演算以查看爻辞解读</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="tab-content" id="relations" role="tabpanel" aria-labelledby="relations-tab">
-                                <div class="tab-panel" id="relationsContent">
-                                    <div class="relation-graph">
-                                        <h3 class="relation-title">相关卦象</h3>
-                                        <div class="relation-items" id="relationItems">
-                                            请完成卦象演算以查看相关卦象。
+                                <div class="relation-graph">
+                                    <h3 class="relation-title">相关卦象</h3>
+                                    <div class="relation-items" id="relationItems">
+                                        <div class="empty-state">
+                                            <svg class="empty-icon" viewBox="0 0 24 24">
+                                                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,13H17V11H7"></path>
+                                            </svg>
+                                            <p>请完成卦象演算以查看相关卦象</p>
                                         </div>
                                     </div>
                                 </div>
@@ -163,45 +303,72 @@
 
         <!-- 卦象分析工具 -->
         <section id="hexagram-analyzer" class="content-section" role="tabpanel" aria-labelledby="hexagram-analyzer-btn">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">卦象组合分析</h2>
-                </div>
-                <div class="card-body">
-                    <div class="combination-tool">
-                        <h3 class="combination-title">八卦组合演算</h3>
-                        <div class="combination-selectors">
-                            <div class="selector-group">
-                                <div class="selector-label">上卦</div>
-                                <select class="bagua-selector" id="upperBagua">
-                                    <option value="">请选择上卦</option>
-                                    <option value="乾">乾 ☰ (天)</option>
-                                    <option value="坤">坤 ☷ (地)</option>
-                                    <option value="震">震 ☳ (雷)</option>
-                                    <option value="艮">艮 ☶ (山)</option>
-                                    <option value="坎">坎 ☵ (水)</option>
-                                    <option value="离">离 ☲ (火)</option>
-                                    <option value="巽">巽 ☴ (风)</option>
-                                    <option value="兑">兑 ☱ (泽)</option>
-                                </select>
+            <div class="analyzer-layout">
+                <div class="card combination-card">
+                    <div class="card-header">
+                        <h2 class="card-title">八卦组合分析工具</h2>
+                        <p class="card-subtitle">通过选择上下卦来分析卦象组合</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="combination-tool">
+                            <div class="combination-selectors">
+                                <div class="selector-group">
+                                    <label class="selector-label" for="upperBagua">上卦选择</label>
+                                    <select class="bagua-selector" id="upperBagua" aria-describedby="upperBaguaDesc">
+                                        <option value="">请选择上卦</option>
+                                        <option value="乾">乾 ☰ (天)</option>
+                                        <option value="坤">坤 ☷ (地)</option>
+                                        <option value="震">震 ☳ (雷)</option>
+                                        <option value="艮">艮 ☶ (山)</option>
+                                        <option value="坎">坎 ☵ (水)</option>
+                                        <option value="离">离 ☲ (火)</option>
+                                        <option value="巽">巽 ☴ (风)</option>
+                                        <option value="兑">兑 ☱ (泽)</option>
+                                    </select>
+                                    <small id="upperBaguaDesc" class="selector-desc">选择六爻卦象的上三爻</small>
+                                </div>
+                                <div class="combination-operator">
+                                    <svg class="operator-icon" viewBox="0 0 24 24">
+                                        <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path>
+                                    </svg>
+                                </div>
+                                <div class="selector-group">
+                                    <label class="selector-label" for="lowerBagua">下卦选择</label>
+                                    <select class="bagua-selector" id="lowerBagua" aria-describedby="lowerBaguaDesc">
+                                        <option value="">请选择下卦</option>
+                                        <option value="乾">乾 ☰ (天)</option>
+                                        <option value="坤">坤 ☷ (地)</option>
+                                        <option value="震">震 ☳ (雷)</option>
+                                        <option value="艮">艮 ☶ (山)</option>
+                                        <option value="坎">坎 ☵ (水)</option>
+                                        <option value="离">离 ☲ (火)</option>
+                                        <option value="巽">巽 ☴ (风)</option>
+                                        <option value="兑">兑 ☱ (泽)</option>
+                                    </select>
+                                    <small id="lowerBaguaDesc" class="selector-desc">选择六爻卦象的下三爻</small>
+                                </div>
                             </div>
-                            <div class="selector-group">
-                                <div class="selector-label">下卦</div>
-                                <select class="bagua-selector" id="lowerBagua">
-                                    <option value="">请选择下卦</option>
-                                    <option value="乾">乾 ☰ (天)</option>
-                                    <option value="坤">坤 ☷ (地)</option>
-                                    <option value="震">震 ☳ (雷)</option>
-                                    <option value="艮">艮 ☶ (山)</option>
-                                    <option value="坎">坎 ☵ (水)</option>
-                                    <option value="离">离 ☲ (火)</option>
-                                    <option value="巽">巽 ☴ (风)</option>
-                                    <option value="兑">兑 ☱ (泽)</option>
-                                </select>
+
+                            <div class="combination-result" id="combinationResult">
+                                <div class="result-placeholder">
+                                    <svg class="placeholder-icon" viewBox="0 0 24 24">
+                                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"></path>
+                                    </svg>
+                                    <p>选择上下卦以查看组合结果</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="combination-result mt-md" id="combinationResult">
-                            <div class="text-center">选择上下卦以查看组合结果</div>
+                    </div>
+                </div>
+
+                <!-- 快速组合面板 -->
+                <div class="card quick-combinations">
+                    <div class="card-header">
+                        <h3 class="card-title">常用卦象组合</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-combo-grid" id="quickComboGrid">
+                            <!-- 动态生成常用组合 -->
                         </div>
                     </div>
                 </div>
@@ -210,19 +377,68 @@
 
         <!-- 历史记录部分 -->
         <section id="history" class="content-section" role="tabpanel" aria-labelledby="history-btn">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">占卜历史记录</h2>
-                </div>
-                <div class="card-body">
-                    <div class="history-filters">
-                        <div class="filter-item active" data-filter="all">全部</div>
-                        <div class="filter-item" data-filter="today">今日</div>
-                        <div class="filter-item" data-filter="week">本周</div>
-                        <div class="filter-item" data-filter="month">本月</div>
+            <div class="history-layout">
+                <div class="card history-card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <h2 class="card-title">占卜历史记录</h2>
+                            <p class="card-subtitle">查看和管理您的占卜历史</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-outline btn-sm" id="exportHistoryBtn">
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <path d="M14,2H6C4.9,2,4,2.9,4,4v16c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V8L14,2z"></path>
+                                </svg>
+                                导出历史
+                            </button>
+                            <button class="btn btn-danger btn-sm" id="clearHistoryBtn">
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"></path>
+                                </svg>
+                                清空历史
+                            </button>
+                        </div>
                     </div>
-                    <div class="history-list" id="historyList">
-                        <div class="empty-history">暂无历史记录</div>
+                    <div class="card-body">
+                        <div class="history-controls">
+                            <div class="history-filters">
+                                <div class="filter-item active" data-filter="all">全部记录</div>
+                                <div class="filter-item" data-filter="today">今日</div>
+                                <div class="filter-item" data-filter="week">本周</div>
+                                <div class="filter-item" data-filter="month">本月</div>
+                            </div>
+                            <div class="history-search">
+                                <input type="text" class="search-input-small" id="historySearchInput" placeholder="搜索历史记录...">
+                            </div>
+                        </div>
+
+                        <div class="history-stats" id="historyStats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="totalRecords">0</span>
+                                <span class="stat-label">总记录</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="thisWeekRecords">0</span>
+                                <span class="stat-label">本周</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="changingLines">0</span>
+                                <span class="stat-label">变爻记录</span>
+                            </div>
+                        </div>
+
+                        <div class="history-list" id="historyList">
+                            <div class="empty-history">
+                                <svg class="empty-icon" viewBox="0 0 24 24">
+                                    <path d="M13,3C9.1,3,6,6.1,6,10h1.6L5,13.5L2.4,10H4c0-5,4-9,9-9s9,4,9,9s-4,9-9,9c-2.4,0-4.6-0.9-6.3-2.6L5.3,17.8C7.5,20.1,10.1,21,13,21c5.5,0,10-4.5,10-10S18.5,3,13,3z"></path>
+                                </svg>
+                                <h3>暂无历史记录</h3>
+                                <p>您还没有保存任何占卜记录</p>
+                                <button class="btn btn-primary" onclick="document.querySelector('[data-section=divination]').click()">
+                                    开始占卜
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -230,31 +446,86 @@
 
         <!-- 八卦知识部分 -->
         <section id="knowledge" class="content-section" role="tabpanel" aria-labelledby="knowledge-btn">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">八卦基础知识</h2>
+            <div class="knowledge-layout">
+                <div class="card intro-card">
+                    <div class="card-body">
+                        <div class="knowledge-intro">
+                            <h2 class="intro-title">易经八卦基础知识</h2>
+                            <p class="intro-description">
+                                八卦源于《易经》，相传由伏羲氏所创，是中国古代哲学、宇宙观的基础。
+                                八卦通过阴阳变化，象征天地万物的基本属性，是易经系统的根本。
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="knowledge-section">
-                        <h3 class="section-title">八卦源流</h3>
-                        <p class="knowledge-text">八卦源于《易经》，相传由伏羲氏所创，是中国古代哲学、宇宙观的基础。八卦通过阴阳变化，象征天地万物的基本属性，是易经系统的根本。八卦以"卦"为单位，一个卦由三爻组成，阳爻为实线"—"，阴爻为虚线"- -"，三爻排列组合，形成八种基本卦象。</p>
+
+                <div class="knowledge-content">
+                    <div class="knowledge-nav">
+                        <button class="knowledge-nav-item active" data-knowledge="bagua">八卦详解</button>
+                        <button class="knowledge-nav-item" data-knowledge="principles">易理基础</button>
+                        <button class="knowledge-nav-item" data-knowledge="divination">占卜方法</button>
+                        <button class="knowledge-nav-item" data-knowledge="interpretation">解卦技巧</button>
                     </div>
 
-                    <div class="bagua-grid" id="baguaGrid"></div>
+                    <div class="knowledge-panels">
+                        <div class="knowledge-panel active" id="bagua-panel">
+                            <div class="bagua-grid" id="baguaGrid"></div>
+                        </div>
 
-                    <div class="knowledge-section">
-                        <h3 class="section-title">六十四卦的形成</h3>
-                        <p class="knowledge-text">八卦两两相叠，形成六十四卦。上卦为外卦，代表外部环境；下卦为内卦，代表内在状态。六十四卦涵盖了世间万象的变化规律。每一卦由六爻组成，从下到上依次为初爻、二爻、三爻、四爻、五爻、上爻。其中初爻、三爻、五爻为奇数爻，象征阳；二爻、四爻、上爻为偶数爻，象征阴。</p>
-                    </div>
+                        <div class="knowledge-panel" id="principles-panel">
+                            <div class="principles-content">
+                                <div class="principle-section">
+                                    <h3>阴阳理论</h3>
+                                    <p>阴阳是易经的核心概念，代表宇宙中对立统一的两种力量。阳爻（—）代表刚健、主动；阴爻（⚋）代表柔顺、被动。</p>
+                                </div>
+                                <div class="principle-section">
+                                    <h3>五行相克</h3>
+                                    <p>五行（金、木、水、火、土）相生相克，与八卦相配，形成复杂的象征体系。</p>
+                                </div>
+                                <div class="principle-section">
+                                    <h3>时空观念</h3>
+                                    <p>易经强调时机的重要性，认为万事万物都有其发展的时序和规律。</p>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="knowledge-section">
-                        <h3 class="section-title">占卜的原理</h3>
-                        <p class="knowledge-text">易经占卜基于"天人合一"的哲学思想，认为时间、空间中的一切事物都是相互联系的。通过演算卦象，可以揭示事物发展的内在规律和趋势。占卜过程中，铜钱的正反面分别代表阳爻和阴爻，三枚铜钱可能出现的组合对应不同的卦爻变化。</p>
-                    </div>
+                        <div class="knowledge-panel" id="divination-panel">
+                            <div class="divination-methods">
+                                <div class="method-card">
+                                    <h4>铜钱占卜法</h4>
+                                    <p>使用三枚铜钱，连续投掷六次，根据正反面组合确定每一爻的阴阳和变化。</p>
+                                </div>
+                                <div class="method-card">
+                                    <h4>蓍草占卜法</h4>
+                                    <p>传统的占卜方法，使用50根蓍草，通过复杂的分组过程确定卦象。</p>
+                                </div>
+                                <div class="method-card">
+                                    <h4>时间起卦法</h4>
+                                    <p>根据年月日时的数字组合来起卦，适合快速占卜。</p>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="knowledge-section">
-                        <h3 class="section-title">变爻的意义</h3>
-                        <p class="knowledge-text">变爻是易经预测中最重要的因素之一，当爻发生变化时，表示这个位置上的能量正在转化。在传统易学中，有"老阳"和"老阴"的概念，代表能量已经极盛即将转变。老阳变为阴，老阴变为阳，形成变卦。变爻不仅暗示着事物的变动，也指出了特别需要关注的方面。</p>
+                        <div class="knowledge-panel" id="interpretation-panel">
+                            <div class="interpretation-guide">
+                                <div class="guide-section">
+                                    <h4>看卦象结构</h4>
+                                    <ul>
+                                        <li>观察上下卦的属性和关系</li>
+                                        <li>分析六爻的当位与否</li>
+                                        <li>注意变爻的位置和意义</li>
+                                    </ul>
+                                </div>
+                                <div class="guide-section">
+                                    <h4>解读变化趋势</h4>
+                                    <ul>
+                                        <li>本卦显示当前状态</li>
+                                        <li>变卦指示发展方向</li>
+                                        <li>综合分析整体走势</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -262,56 +533,142 @@
 
         <!-- 卦象查询部分 -->
         <section id="search" class="content-section" role="tabpanel" aria-labelledby="search-btn">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">卦象查询</h2>
+            <div class="search-layout">
+                <div class="card search-card">
+                    <div class="card-header">
+                        <h2 class="card-title">卦象查询</h2>
+                        <p class="card-subtitle">通过关键词快速查找卦象信息</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-section">
+                            <div class="search-container">
+                                <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24">
+                                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                                </svg>
+                                <input type="text" id="searchInput" class="search-input" placeholder="输入卦名、关键词或卦象序号..." aria-label="搜索卦象">
+                                <button class="search-clear" id="searchClear" aria-label="清空搜索">
+                                    <svg class="icon" viewBox="0 0 24 24">
+                                        <path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="search-filters">
+                                <div class="filter-section">
+                                    <span class="filter-label">快速标签：</span>
+                                    <div class="search-tags">
+                                        <span class="search-tag" data-keyword="天">天</span>
+                                        <span class="search-tag" data-keyword="地">地</span>
+                                        <span class="search-tag" data-keyword="水">水</span>
+                                        <span class="search-tag" data-keyword="火">火</span>
+                                        <span class="search-tag" data-keyword="雷">雷</span>
+                                        <span class="search-tag" data-keyword="風">风</span>
+                                        <span class="search-tag" data-keyword="山">山</span>
+                                        <span class="search-tag" data-keyword="泽">泽</span>
+                                    </div>
+                                </div>
+
+                                <div class="filter-section">
+                                    <span class="filter-label">分类筛选：</span>
+                                    <select class="filter-select" id="categoryFilter">
+                                        <option value="">全部类别</option>
+                                        <option value="fortune">吉凶</option>
+                                        <option value="career">事业</option>
+                                        <option value="relationship">感情</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="search-stats" id="searchStats" style="display: none;">
+                            <span class="search-count">找到 <strong id="resultCount">0</strong> 个相关卦象</span>
+                        </div>
+
+                        <div class="search-results" id="searchResults">
+                            <div class="search-placeholder">
+                                <svg class="placeholder-icon" viewBox="0 0 24 24">
+                                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                                </svg>
+                                <h3>开始搜索卦象</h3>
+                                <p>输入卦名、关键词或使用标签来查找相关卦象</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="search-container">
-                        <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24">
-                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-                        </svg>
-                        <input type="text" id="searchInput" class="search-input" placeholder="输入卦名或关键词进行查询..." aria-label="搜索卦象">
+
+                <!-- 推荐卦象 -->
+                <div class="card featured-card">
+                    <div class="card-header">
+                        <h3 class="card-title">精选卦象</h3>
                     </div>
-                    <div class="search-tags">
-                        <span class="search-tag" data-keyword="天">天</span>
-                        <span class="search-tag" data-keyword="地">地</span>
-                        <span class="search-tag" data-keyword="水">水</span>
-                        <span class="search-tag" data-keyword="火">火</span>
-                        <span class="search-tag" data-keyword="雷">雷</span>
-                        <span class="search-tag" data-keyword="风">风</span>
-                        <span class="search-tag" data-keyword="山">山</span>
-                        <span class="search-tag" data-keyword="泽">泽</span>
+                    <div class="card-body">
+                        <div class="featured-hexagrams" id="featuredHexagrams">
+                            <!-- 动态生成精选卦象 -->
+                        </div>
                     </div>
-                    <div class="search-results" id="searchResults"></div>
                 </div>
             </div>
         </section>
     </div>
 
-    <!-- 模态框 -->
+    <!-- 增强的模态框 -->
     <div class="modal" id="hexagramModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">卦象详情</h3>
-                <button class="modal-close" id="closeModal" aria-label="关闭对话框">&times;</button>
+        <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div class="modal-container">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modalTitle">卦象详情</h3>
+                    <div class="modal-actions">
+                        <button class="modal-action-btn" id="modalSaveBtn" aria-label="保存到历史">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M17,3H5C3.89,3,3,3.9,3,5v14c0,1.1,0.89,2,2,2h14c1.1,0,2-0.9,2-2V7L17,3z"></path>
+                            </svg>
+                        </button>
+                        <button class="modal-action-btn" id="modalShareBtn" aria-label="分享卦象">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19A2.92,2.92 0 0,0 18,16.08Z"></path>
+                            </svg>
+                        </button>
+                        <button class="modal-close" id="closeModal" aria-label="关闭对话框">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <div class="modal-loading">
+                        <div class="loading-spinner">
+                            <div class="taiji-spinner"></div>
+                        </div>
+                        <p>加载卦象信息中...</p>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body" id="modalContent"></div>
         </div>
     </div>
 
     <!-- 通知容器 -->
     <div class="notification-container" id="notificationContainer" aria-live="polite"></div>
 
-    <!-- 帮助按钮 -->
-    <div class="help-trigger" id="helpTrigger" tabindex="0" role="button" aria-label="打开帮助">
-        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"></path>
-        </svg>
-        <span class="help-tooltip">查看使用帮助</span>
+    <!-- 确认对话框 -->
+    <div class="confirm-dialog" id="confirmDialog" role="dialog" aria-modal="true">
+        <div class="confirm-backdrop"></div>
+        <div class="confirm-content">
+            <div class="confirm-header">
+                <h4 class="confirm-title" id="confirmTitle">确认操作</h4>
+            </div>
+            <div class="confirm-body">
+                <p class="confirm-message" id="confirmMessage">您确定要执行此操作吗？</p>
+            </div>
+            <div class="confirm-actions">
+                <button class="btn btn-outline" id="confirmCancel">取消</button>
+                <button class="btn btn-danger" id="confirmOk">确定</button>
+            </div>
+        </div>
     </div>
 
-    <!-- 引入JavaScript -->
+    <!-- JavaScript 文件 -->
     <script src="js/app.js"></script>
     <script src="js/modules.js"></script>
 </body>
