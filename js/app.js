@@ -634,9 +634,6 @@ const YizhiApp = (function() {
         // 初始化知识面板导航
         initKnowledgeNavigation();
 
-        // 初始化键盘导航
-        initKeyboardNavigation();
-
         await Utils.delay(200); // 模拟初始化时间
     }
 
@@ -746,41 +743,6 @@ const YizhiApp = (function() {
                     }
                 });
             });
-        });
-    }
-
-    /**
-     * 初始化键盘导航
-     */
-    function initKeyboardNavigation() {
-        // 全局键盘快捷键
-        document.addEventListener('keydown', (e) => {
-            // Alt + 数字键切换主要功能区
-            if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-                const keyNumber = parseInt(e.key);
-                if (keyNumber >= 1 && keyNumber <= 5) {
-                    e.preventDefault();
-                    const navButtons = document.querySelectorAll('.nav-button');
-                    if (navButtons[keyNumber - 1]) {
-                        navButtons[keyNumber - 1].click();
-                    }
-                }
-            }
-
-            // Ctrl + K 快速搜索
-            if (e.ctrlKey && e.key === 'k') {
-                e.preventDefault();
-                const searchButton = document.querySelector('[data-section="search"]');
-                if (searchButton) {
-                    searchButton.click();
-                    setTimeout(() => {
-                        const searchInput = document.getElementById('searchInput');
-                        if (searchInput) {
-                            searchInput.focus();
-                        }
-                    }, 100);
-                }
-            }
         });
     }
 

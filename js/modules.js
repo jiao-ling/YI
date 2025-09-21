@@ -3484,13 +3484,6 @@ const ModalModule = (function() {
                 case 'Escape':
                     hide();
                     break;
-                case 's':
-                case 'S':
-                    if (e.ctrlKey || e.metaKey) {
-                        e.preventDefault();
-                        saveCurrentHexagram();
-                    }
-                    break;
                 default:
                     break;
             }
@@ -3863,8 +3856,7 @@ const HelpModule = (function() {
                     '历史记录中可以查看过去的占卜结果',
                     '卦象分析工具可以模拟不同八卦的组合',
                     '八卦知识页面提供易经基础理论',
-                    '卦象查询功能可以直接搜索特定卦象',
-                    '支持键盘快捷键：Alt+数字切换功能区，Ctrl+K快速搜索'
+                    '卦象查询功能可以直接搜索特定卦象'
                 ]
             },
             {
@@ -3924,34 +3916,6 @@ const HelpModule = (function() {
                 `;
             });
 
-            // 添加快捷键信息
-            const shortcutsHTML = `
-                <div class="help-section">
-                    <h4 class="help-section-title">
-                        <span class="help-section-icon">⌨️</span>
-                        键盘快捷键
-                    </h4>
-                    <div class="shortcuts-grid">
-                        <div class="shortcut-item">
-                            <kbd>Alt + 1-5</kbd>
-                            <span>切换功能区</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <kbd>Ctrl + K</kbd>
-                            <span>快速搜索</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <kbd>Esc</kbd>
-                            <span>关闭弹窗</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <kbd>Ctrl + S</kbd>
-                            <span>保存当前</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
             // 创建完整的帮助内容
             const fullContent = `
                 <div class="help-content">
@@ -3962,12 +3926,11 @@ const HelpModule = (function() {
                             为您提供准确、便捷的占卜体验。以下是详细的使用指南。
                         </p>
                     </div>
-                    
+
                     <div class="help-sections">
                         ${sectionsHTML}
-                        ${shortcutsHTML}
                     </div>
-                    
+
                     <div class="help-footer">
                         <p class="help-version">版本：${YizhiApp.config.version}</p>
                         <p class="help-contact">
